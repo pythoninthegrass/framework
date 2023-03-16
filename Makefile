@@ -87,6 +87,8 @@ ansible: pip ## install ansible
 		brew install ansible ansible-lint; \
 	else \
 		python3 -m pip install ansible ansible-lint; \
+		sudo touch /var/log/ansible.log; \
+		sudo chmod 666 /var/log/ansible.log; \
 	fi
 
 just: ## install justfile

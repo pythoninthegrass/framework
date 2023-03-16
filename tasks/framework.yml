@@ -3,9 +3,9 @@
 ---
 - hosts: localhost
   connection: local
-  become: true
+  become: false
   gather_facts: true
-  debugger: on_failed
+  # debugger: on_failed
   any_errors_fatal: true
   vars:
     os_environment:
@@ -17,13 +17,14 @@
         name: sshd
         state: started
         enabled: yes
-      tags: qa
+      # tags: qa
 
     - name: Install pip
+      become: true
       ansible.builtin.package:
         name: python3-pip
         state: present
-      tags: qa
+      # tags: qa
 
     - name: Get running ansible user
       ansible.builtin.set_fact:
@@ -38,17 +39,10 @@
         os_release: "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}"
         major_ver: "{{ ansible_distribution_major_version }}"
         distro: "{{ ansible_distribution }}"
-      # tags: qa
-
-    - name: Update Packages
-      ansible.builtin.dnf:
-        name: "*"
-        update_cache: yes
-        state: "latest"
-      when: ansible_os_family == "RedHat"
-      # tags: qa
+      tags: qa
 
     - name: Cross-platform dependencies
+      become: true
       ansible.builtin.package:
         name:
         - acl
@@ -57,72 +51,161 @@
         - bats
         - ca-certificates
         - cloud-init
+        - dbus-daemon
+        - dbus-tools
+        - dconf
         - gh
+        - gnupg2
         - git
+        - pass
         - python3
         - python3-redis
-        - qemu-guest-agent
+        - python3-psutil
         - tree
         - vim
         state: present
       # tags: qa
 
   tasks:
-    # TODO: night light to 1st notch, fractional scaling to 150%, reverse scroll direction
-    - name: gsettings
-      ansible.builtin.shell: |
-        # If you want to enable fractional scaling:
-        gsettings set org.gnome.mutter experimental-features "['scale-monitor-framebuffer']"
+    - name: Enable gnome remote desktop (org.gnome.desktop.remote-desktop.vnc)
+      community.general.dconf:
+        key: "/org/gnome/desktop/remote-desktop/vnc/auth-method"
+        value: "'password'"
 
-        # If you want to enable tap-to-click on the touchpad:
-        gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click true
+    - name: Enable gnome remote desktop (org.gnome.desktop.remote-desktop)
+      community.general.dconf:
+        key: "/org/gnome/desktop/remote-desktop/vnc/view-only"
+        value: "'false'"
 
-        # 12-hour clock (revert: `24h`)
-        gsettings set org.gnome.desktop.interface clock-format 12h
-      args:
-        executable: /bin/bash
-      when: ansible_os_family == "RedHat"
+    - name: Enable gnome remote desktop (org.gnome.desktop.remote-desktop)
+      community.general.dconf:
+        key: "/org/gnome/settings-daemon/plugins/sharing/gnome-remote-desktop/enabled-connections"
+        value: "['$( grep UUID /etc/sysconfig/network-scripts/ifcfg-enp1s0 | cut -d= -f2)']"
+
+    - name: Enable gnome remote desktop (org.gnome.desktop.remote-desktop)
+      ansible.builtin.systemd:
+        state: started
+        scope: user
+        name: gnome-remote-desktop
+
+    - name: Inactive timeout
+      community.general.dconf:
+        key: "/org/gnome/settings-daemon/plugins/power/sleep-inactive-ac-type"
+        value: "'nothing'"
+
+    - name: Show battery percentage
+      community.general.dconf:
+        key: "/org/gnome/desktop/interface/show-battery-percentage"
+        value: "'true'"
+
+    - name: terminal bell
+      community.general.dconf:
+        key: "/org/gnome/terminal/legacy/profiles:/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9/audible-bell"
+        value: "'false'"
+
+    - name: App-switcher on the current workspace only
+      community.general.dconf:
+        key: "/org/gnome/shell/app-switcher/current-workspace-only"
+        value: "'false'"
+
+    - name: Clock show date
+      community.general.dconf:
+        key: "/org/gnome/desktop/interface/clock-show-date"
+        value: "'true'"
+
+    - name: Set 12-hour clock
+      community.general.dconf:
+        key: /org/gnome/desktop/interface/clock-format
+        value: "'12h'"
+
+    - name: Enable fractional scaling
+      community.general.dconf:
+        key: /org/gnome/mutter/scale-monitor-framebuffer
+        value: "'true'"
+      tags: qa
+
+    - name: Set fractional scaling to 150%
+      community.general.dconf:
+        key: /org/gnome/desktop/interface/scale-factor
+        value: "'2'"
+
+    - name: Set night light to 1st notch
+      community.general.dconf:
+        key: /org/gnome/settings-daemon/plugins/color/night-light-temperature
+        value: "'4000'"
+
+    - name: Enable subpixel antialiasing
+      community.general.dconf:
+        key: "/org/gnome/settings-daemon/plugins/xsettings/antialiasing"
+        value: "'rgba'"
+
+    - name: Disable natural scrolling
+      community.general.dconf:
+        key: /org/gnome/desktop/peripherals/touchpad/natural-scroll
+        value: "'false'"
       # tags: qa
 
+    - name: Set tap to click
+      community.general.dconf:
+        key: /org/gnome/desktop/peripherals/touchpad/tap-to-click
+        value: "'false'"
+      # tags: qa
+
+    - name: Enable two-finger scrolling
+      community.general.dconf:
+        key: "/org/gnome/desktop/peripherals/touchpad/two-finger-scrolling-enabled"
+        value: "'true'"
+
     - name: grubby
+      become: true
       ansible.builtin.shell: |
         # Improve power saving for NVMe drives:
         grubby --update-kernel=ALL --args="nvme.noacpi=1"
 
         # Prevent a **potencial** Fedora freezing issue:
         grubby --update-kernel=ALL --args="i915.enable_psr=0"
+
+        # Docker cgroups
+        grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=1"
       args:
         executable: /bin/bash
       when: ansible_os_family == "RedHat"
-      # tags: qa
+      tags: qa
 
     - name: Install packages
+      become: true
       ansible.builtin.dnf:
         name:
         - fprintd
         - fprintd-pam
         state: present
-      when: ansible_os_family == "RedHat"
-      # tags: qa
 
-    - name: Create fingerprint service
+    - name: Check if fingerprint service is enabled
       ansible.builtin.lineinfile:
-        path: /usr/lib/systemd/system/fprintd.service
-        line: |
-          [Install]
-          WantedBy=multi-user.target
-        state: present
-        create: yes
+        state: absent
+        path: "/usr/lib/systemd/system/fprintd.service"
+        regexp: "^WantedBy=multi-user.target"
+      check_mode: true
+      register: check
       when: ansible_os_family == "RedHat"
-      # tags: qa
+
+    - name: Define fingerprint service as wanted by multi-user.target
+      become: true
+      ansible.builtin.lineinfile:
+        path: "/usr/lib/systemd/system/fprintd.service"
+        insertafter: "[Install]"
+        line: |
+          "WantedBy=multi-user.target"
+        state: present
+      when: ansible_os_family == "RedHat" and check.found == 1
 
     - name: Start fprintd.service
+      become: true
       ansible.builtin.systemd:
         name: fprintd.service
         state: started
         enabled: yes
       when: ansible_os_family == "RedHat"
-      # tags: qa
 
     - name: Print manual fingerprint instructions
       ansible.builtin.debug:
@@ -148,4 +231,3 @@
 
           If authselect looks good, upon reboot, your fingerprint will allow you login.
       when: ansible_os_family == "RedHat"
-      # tags: qa

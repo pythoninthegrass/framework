@@ -5,7 +5,7 @@
   connection: local
   become: true
   gather_facts: true
-  debugger: on_failed
+  # debugger: on_failed
   any_errors_fatal: true
   vars:
     os_environment:
@@ -40,18 +40,20 @@
         - ca-certificates
         - cloud-init
         - git
+        - inxi
         - python3
         - python3-redis
-        - qemu-guest-agent
+        - python3-psutil
         - tree
         - vim
         state: present
 
-    - name: Enable redis
-      ansible.builtin.service:
-        name: redis
-        enabled: true
-        state: started
+    # TODO: QA
+    # - name: Enable redis
+    #   ansible.builtin.service:
+    #     name: redis
+    #     enabled: true
+    #     state: started
   tasks:
     - name: Setup directory for git repos
       ansible.builtin.file:
@@ -84,39 +86,6 @@
         update_cache: yes
         state: present
       when: ansible_os_family == "Debian"
-
-    - name: Install redhat dependencies
-      ansible.builtin.dnf:
-        name:
-        - automake
-        - checkpolicy
-        - containerd.io
-        - dnf-plugins-core
-        - docker-ce
-        - docker-ce-cli
-        - docker-compose-plugin
-        - gcc
-        - gcc-c++
-        - git
-        - kernel-devel
-        - make
-        - ncurses-devel
-        - openssl-devel
-        - policycoreutils
-        - policycoreutils-python-utils
-        - python3-devel
-        - python3-pip
-        - python3-psutil
-        - python3-setuptools
-        - python3-wheel
-        - redhat-rpm-config
-        - rpm-build
-        - rpmdevtools
-        - terraform
-        - vim-enhanced
-        update_cache: yes
-        state: present
-      when: ansible_os_family == "RedHat"
 
     - name: Enable rpmfusion repos
       ansible.builtin.dnf:
@@ -152,6 +121,47 @@
         mode: 0644
       when: ansible_os_family == "RedHat"
 
+    - name: Add extra repos
+      ansible.builtin.shell: |
+        dnf config-manager --add-repo https://download.docker.com/linux/{{ distro | lower }}/docker-ce.repo
+        dnf config-manager --add-repo https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+      args:
+        executable: /bin/bash
+      when: ansible_os_family == "RedHat"
+
+    - name: Install redhat dependencies
+      ansible.builtin.dnf:
+        name:
+        - automake
+        - checkpolicy
+        - containerd.io
+        - dnf-plugins-core
+        - docker-ce
+        - docker-ce-cli
+        - docker-compose-plugin
+        - gcc
+        - gcc-c++
+        - git
+        - kernel-devel
+        - make
+        - ncurses-devel
+        - openssl-devel
+        - policycoreutils
+        - policycoreutils-python-utils
+        - python3-devel
+        - python3-pip
+        - python3-psutil
+        - python3-setuptools
+        - python3-wheel
+        - redhat-rpm-config
+        - rpm-build
+        - rpmdevtools
+        - terraform
+        - vim-enhanced
+        update_cache: yes
+        state: present
+      when: ansible_os_family == "RedHat"
+
     - name: Install k8s dependencies
       ansible.builtin.dnf:
         name:
@@ -169,42 +179,51 @@
         executable: /bin/bash
       when: ansible_os_family == "RedHat"
 
-    - name: Add extra repos
+    - name: Activate ip_tables module
       ansible.builtin.shell: |
-        dnf config-manager --add-repo https://download.docker.com/linux/{{ distro | lower }}/docker-ce.repo
-        dnf config-manager --add-repo https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+        modprobe ip_tables
+        modprobe br_netfilter
+        echo ip_tables > /etc/modules-load.d/ip_tables.conf
+        echo br_netfilter > /etc/modules-load.d/br_netfilter.conf
       args:
         executable: /bin/bash
+      tags: qa
       when: ansible_os_family == "RedHat"
 
+    # TODO: QA
     - name: Whitelist docker network
       ansible.posix.firewalld:
         zone: trusted
         interface: docker0
         permanent: yes
         state: enabled
+      tags: qa
 
     - name: Enable docker service
       ansible.builtin.service:
         name: docker
         enabled: true
         state: started
+      tags: qa
 
     - name: Add user to docker group
       ansible.builtin.user:
         name: "{{ local_user }}"
         groups: docker
         append: yes
+      tags: qa
 
     - name: Install docker python module
       pip:
         name: docker
         state: present
+      tags: qa
 
     - name: Pull default Docker image
       community.docker.docker_image:
         name: "{{ container_image }}"
         source: pull
+      tags: qa
 
     - name: Create default containers
       community.docker.docker_container:
@@ -212,6 +231,7 @@
         image: "{{ container_image }}"
         command: "{{ container_command }}"
         state: present
+      tags: qa
 
     - name: Update Packages
       ansible.builtin.dnf:
@@ -219,3 +239,4 @@
         update_cache: yes
         state: "latest"
       when: ansible_os_family == "RedHat"
+      tags: qa

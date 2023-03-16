@@ -26,13 +26,11 @@
       ansible.builtin.slurp:
         src: ../vars/.env.json
       register: result
-      tags: qa
 
     - name: Users from .env file
       set_fact:
         users: "{{ (result.content | b64decode) | from_json | json_query('users[?name != \"\"].name') }}"
         keys: "{{ (result.content | b64decode) | from_json | json_query('users[?key != \"\"].key') }}"
-      tags: qa
 
     - name: Validate users and authorized_keys variables
       ansible.builtin.assert:
@@ -58,22 +56,41 @@
       with_items:
         - "{{ users }}"
 
-    # TODO: QA
     - name: Add user public ssh key
       ansible.builtin.authorized_key:
         user: "{{ item.0 }}"
         key: "{{ item.1 }}"
         state: present
       with_together:
-        - {{ users }}
-        - {{ keys }}
-      tags: qa
+        - "{{ users }}"
+        - "{{ keys }}"
+      # tags: qa
 
-    - name: Validate the sudoers file before saving
+    - name: Set vim as default sudoers editor
       ansible.builtin.lineinfile:
         path: /etc/sudoers
         state: present
-        regexp: '^%sudo ALL='
-        line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+        regexp: '^Defaults\s+env_reset'
+        line: 'Defaults    env_reset,  editor="/usr/bin/vim", timestamp_timeout=30'
         validate: /usr/sbin/visudo -cf %s
-      # tags: user
+      when: ansible_os_family == "RedHat"
+
+    - name: Check if wheel nopasswd is enabled
+      ansible.builtin.lineinfile:
+        state: absent
+        path: "/etc/sudoers"
+        regexp: "%wheel ALL=(ALL) NOPASSWD: ALL"
+      check_mode: true
+      register: check
+      when: ansible_os_family == "RedHat"
+      tags: qa
+
+    - name: Enable wheel nopasswd
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: '^%wheel ALL='
+        line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+        validate: /usr/sbin/visudo -cf %s
+      when: ansible_os_family == "RedHat" and check.found == 1
+      tags: qa

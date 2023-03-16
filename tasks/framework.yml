@@ -48,6 +48,7 @@
         - bats
         - ca-certificates
         - cloud-init
+        - gh
         - git
         - python3
         - python3-redis

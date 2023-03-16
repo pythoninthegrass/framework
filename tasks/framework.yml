@@ -12,10 +12,18 @@
       - key: EDITOR
         value: vim
   pre_tasks:
+    - name: Enable ssh
+      ansible.builtin.service:
+        name: sshd
+        state: started
+        enabled: yes
+      tags: qa
+
     - name: Install pip
       ansible.builtin.package:
         name: python3-pip
         state: present
+      tags: qa
 
     - name: Get running ansible user
       ansible.builtin.set_fact:
@@ -23,7 +31,7 @@
         home_dir: "{{ lookup('env', 'HOME') }}"
         cacheable: true
       delegate_to: localhost
-      # tags: qa
+      tags: qa
 
     - name: Get OS release
       ansible.builtin.set_fact:
@@ -38,6 +46,7 @@
         update_cache: yes
         state: "latest"
       when: ansible_os_family == "RedHat"
+      # tags: qa
 
     - name: Cross-platform dependencies
       ansible.builtin.package:
@@ -56,8 +65,10 @@
         - tree
         - vim
         state: present
+      # tags: qa
+
   tasks:
-    # TODO: night light to 1st notch, fractional scaling to 150%
+    # TODO: night light to 1st notch, fractional scaling to 150%, reverse scroll direction
     - name: gsettings
       ansible.builtin.shell: |
         # If you want to enable fractional scaling:
@@ -71,6 +82,7 @@
       args:
         executable: /bin/bash
       when: ansible_os_family == "RedHat"
+      # tags: qa
 
     - name: grubby
       ansible.builtin.shell: |
@@ -82,6 +94,7 @@
       args:
         executable: /bin/bash
       when: ansible_os_family == "RedHat"
+      # tags: qa
 
     - name: Install packages
       ansible.builtin.dnf:
@@ -90,6 +103,7 @@
         - fprintd-pam
         state: present
       when: ansible_os_family == "RedHat"
+      # tags: qa
 
     - name: Create fingerprint service
       ansible.builtin.lineinfile:
@@ -100,6 +114,7 @@
         state: present
         create: yes
       when: ansible_os_family == "RedHat"
+      # tags: qa
 
     - name: Start fprintd.service
       ansible.builtin.systemd:
@@ -107,6 +122,7 @@
         state: started
         enabled: yes
       when: ansible_os_family == "RedHat"
+      # tags: qa
 
     - name: Print manual fingerprint instructions
       ansible.builtin.debug:
@@ -132,3 +148,4 @@
 
           If authselect looks good, upon reboot, your fingerprint will allow you login.
       when: ansible_os_family == "RedHat"
+      # tags: qa

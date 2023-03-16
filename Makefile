@@ -1,6 +1,11 @@
 .DEFAULT_GOAL	:= help
-SHELL 			:= $(shell which bash)
-UNAME 			:= $(shell uname -s)
+export SHELL 	:= $(shell which bash)
+export UNAME 	:= $(shell uname -s)
+
+# Source /etc/os-release if it exists
+ifneq (,$(wildcard /etc/os-release))
+	include /etc/os-release
+endif
 
 GREEN  := $(shell tput -Txterm setaf 2)
 YELLOW := $(shell tput -Txterm setaf 3)
@@ -10,15 +15,12 @@ RESET  := $(shell tput -Txterm sgr0)
 
 .PHONY: all
 
-all: ansible check git help homebrew just install xcode
+all: ansible sanity-check git help homebrew just install xcode
 
-# TODO: QA on macOS and Linux
+# TODO: QA on macOS; Linux (Ubuntu, Arch)
 
-check:  ## set environment variables
+sanity-check:  ## output environment variables
 	@echo "Checking environment..."
-	if [[ "${UNAME}" == "Linux" ]]; then \
-		. /etc/os-release; \
-	fi
 	@echo "UNAME: ${UNAME}"
 	@echo "SHELL: ${SHELL}"
 	@echo "ID: ${ID}"
@@ -33,54 +35,53 @@ homebrew: ## install homebrew
 	@echo "Installing Homebrew..."
 	if [[ "${UNAME}" == "Darwin" ]]; then \
 		/bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; \
+	else \
+		echo "Unsupported OS"; \
 	fi
 
-git: check ## install git
+git: ## install git
 	@echo "Installing Git..."
-	if [[ "${UNAME}" == "Darwin" ]] && [[ $(command -v brew; echo $?) -eq 0 ]]; then \
+	if [[ "${UNAME}" == "Darwin" ]] && [[ "$(command -v brew; echo $?)" -eq 0 ]]; then \
 		brew install git; \
-	elif [[ "$${ID}" == "ubuntu" ]]; then \
+	elif [[ "${ID}" == "ubuntu" ]]; then \
 		sudo apt install -y git; \
-	elif [[ "$${ID}" == "fedora" ]]; then \
+	elif [[ "${ID}" == "fedora" ]]; then \
 		sudo dnf install -y git; \
-	elif [[ "$${ID}" == "arch" ]]; then \
+	elif [[ "${ID}" == "arch" ]]; then \
 		sudo pacman -S git; \
 	else \
 		echo "Unsupported OS"; \
-		exit 1; \
 	fi
 
-python: check ## install python
+python: ## install python
 	@echo "Installing Python..."
 	if [[ "${UNAME}" == "Darwin" ]]; then \
 		brew install python; \
-	elif [[ "$${ID}" == "ubuntu" ]]; then \
+	elif [[ "${ID}" == "ubuntu" ]]; then \
 		sudo apt install -y python3; \
-	elif [[ "$${ID}" == "fedora" ]]; then \
+	elif [[ "${ID}" == "fedora" ]]; then \
 		sudo dnf install -y python3; \
-	elif [[ "$${ID}" == "arch" ]]; then \
+	elif [[ "${ID}" == "arch" ]]; then \
 		sudo pacman -S python; \
 	else \
 		echo "Unsupported OS"; \
-		exit 1; \
 	fi
 
-pip: check python ## install pip
+pip: python ## install pip
 	@echo "Installing Pip..."
 	if [[ "${UNAME}" == "Darwin" ]]; then \
 		brew install pip; \
-	elif [[ "$${ID}" == "ubuntu" ]]; then \
+	elif [[ "${ID}" == "ubuntu" ]]; then \
 		sudo apt install -y python3-pip; \
-	elif [[ "$${ID}" == "fedora" ]]; then \
+	elif [[ "${ID}" == "fedora" ]]; then \
 		sudo dnf install -y python3-pip; \
-	elif [[ "$${ID}" == "arch" ]]; then \
+	elif [[ "${ID}" == "arch" ]]; then \
 		sudo pacman -S python-pip; \
 	else \
 		echo "Unsupported OS"; \
-		exit 1; \
 	fi
 
-ansible: check pip ## install ansible
+ansible: pip ## install ansible
 	@echo "Installing Ansible..."
 	if [[ "${UNAME}" == "Darwin" ]]; then \
 		brew install ansible ansible-lint; \
@@ -88,22 +89,21 @@ ansible: check pip ## install ansible
 		python3 -m pip install ansible ansible-lint; \
 	fi
 
-just: check ## install justfile
+just: ## install justfile
 	@echo "Installing Justfile..."
 	if [[ "${UNAME}" == "Darwin" ]]; then \
 		brew install just; \
-	elif [[ "$${ID}" == "ubuntu" ]]; then \
+	elif [[ "${ID}" == "ubuntu" ]]; then \
 		sudo apt install -y just; \
-	elif [[ "$${ID}" == "fedora" ]]; then \
+	elif [[ "${ID}" == "fedora" ]]; then \
 		sudo dnf install -y just; \
-	elif [[ "$${ID}" == "arch" ]]; then \
+	elif [[ "${ID}" == "arch" ]]; then \
 		sudo pacman -S just; \
 	else \
 		echo "Unsupported OS"; \
-		exit 1; \
 	fi
 
-install: xcode homebrew git python pip ansible just  ## install all dependencies
+install: sanity-check xcode homebrew git python pip ansible just  ## install all dependencies
 
 help: ## Show this help.
 	@echo ''

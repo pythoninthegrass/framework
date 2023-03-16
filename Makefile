@@ -16,11 +16,12 @@ all: ansible check git help homebrew just install xcode
 
 check:  ## set environment variables
 	@echo "Checking environment..."
-	@echo "UNAME: ${UNAME}"
-	@echo "SHELL: ${SHELL}"
 	if [[ "${UNAME}" == "Linux" ]]; then \
 		. /etc/os-release; \
 	fi
+	@echo "UNAME: ${UNAME}"
+	@echo "SHELL: ${SHELL}"
+	@echo "ID: ${ID}"
 
 xcode: ## install xcode command line tools
 	@echo "Installing Xcode command line tools..."
@@ -46,6 +47,7 @@ git: check ## install git
 		sudo pacman -S git; \
 	else \
 		echo "Unsupported OS"; \
+		exit 1; \
 	fi
 
 python: check ## install python
@@ -60,6 +62,7 @@ python: check ## install python
 		sudo pacman -S python; \
 	else \
 		echo "Unsupported OS"; \
+		exit 1; \
 	fi
 
 pip: check python ## install pip
@@ -74,6 +77,7 @@ pip: check python ## install pip
 		sudo pacman -S python-pip; \
 	else \
 		echo "Unsupported OS"; \
+		exit 1; \
 	fi
 
 ansible: check pip ## install ansible
@@ -96,6 +100,7 @@ just: check ## install justfile
 		sudo pacman -S just; \
 	else \
 		echo "Unsupported OS"; \
+		exit 1; \
 	fi
 
 install: xcode homebrew git python pip ansible just  ## install all dependencies

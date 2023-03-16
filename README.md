@@ -1,6 +1,6 @@
 # frame.work
 
-Implement the [official Fedora install guide](https://guides.frame.work/Guide/Fedora+37+Installation+on+the+Framework+Laptop/108) from Framework via Ansible. [Using Ansible](#using-ansible) and below are from the excellent [Ansible template repo](https://github.com/acch/ansible-boilerplate) by @acch.
+Implement the [official Fedora install guide](https://guides.frame.work/Guide/Fedora+37+Installation+on+the+Framework+Laptop/108) from Framework via Ansible. [Using Ansible](#using-ansible) and below are from the excellent [Ansible template repo](https://github.com/acch/ansible-boilerplate) by [@acch](https://github.com/acch).
 
 ## Using Ansible
 

@@ -1,0 +1,65 @@
+# code: language=ansible
+
+---
+- hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+  debugger: on_failed
+  any_errors_fatal: true
+  vars:
+    os_environment:
+      - key: EDITOR
+        value: vim
+  pre_tasks:
+    - name: Get running ansible user
+      ansible.builtin.set_fact:
+        local_user: "{{ lookup('env', 'USER') }}"
+        home_dir: "{{ lookup('env', 'HOME') }}"
+        cacheable: true
+      delegate_to: localhost
+
+    - name: Cross-platform dependencies
+      become_user: root
+      ansible.builtin.package:
+        name:
+        - acl
+        - git
+        state: present
+  tasks:
+    - name: Setup directory for git repos
+      ansible.builtin.file:
+        path: "{{ home_dir }}/git"
+        state: directory
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        # mode: 01777
+        recurse: true
+
+    - name: Clone hardening repo
+      become: false
+      ansible.builtin.git:
+        repo: https://github.com/pythoninthegrass/hardening.git
+        dest: "{{ home_dir }}/git/hardening"
+        clone: true
+        update: true
+        force: true
+        version: master
+
+    - name: Clone ansible hardening repo
+      ansible.builtin.git:
+        repo: https://github.com/pythoninthegrass/ansible-role-hardening.git
+        dest: /etc/ansible/roles/hardening
+        clone: true
+        update: true
+        force: true
+        version: master
+
+    - name: Take ownership of hardening repo
+      ansible.builtin.file:
+        path: /etc/ansible/roles/hardening
+        state: directory
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        # mode: 01777
+        recurse: true

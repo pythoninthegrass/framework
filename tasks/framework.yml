@@ -1,0 +1,104 @@
+# code: language=ansible
+
+---
+- hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+  debugger: on_failed
+  any_errors_fatal: true
+  vars:
+    os_environment:
+      - key: EDITOR
+        value: vim
+  pre_tasks:
+    - name: Install pip
+      ansible.builtin.package:
+        name: python3-pip
+        state: present
+
+    - name: Get running ansible user
+      ansible.builtin.set_fact:
+        local_user: "{{ lookup('env', 'USER') }}"
+        home_dir: "{{ lookup('env', 'HOME') }}"
+        cacheable: true
+      delegate_to: localhost
+      # tags: qa
+
+    - name: Get OS release
+      ansible.builtin.set_fact:
+        os_release: "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}"
+        major_ver: "{{ ansible_distribution_major_version }}"
+        distro: "{{ ansible_distribution }}"
+      # tags: qa
+
+    - name: Update Packages
+      ansible.builtin.dnf:
+        name: "*"
+        update_cache: yes
+        state: "latest"
+      when: ansible_os_family == "RedHat"
+
+    - name: Cross-platform dependencies
+      ansible.builtin.package:
+        name:
+        - acl
+        - ansible
+        - ansible-lint
+        - bats
+        - ca-certificates
+        - cloud-init
+        - git
+        - python3
+        - python3-redis
+        - qemu-guest-agent
+        - tree
+        - vim
+        state: present
+  tasks:
+    - name: gsettings
+      ansible.builtin.shell: |
+        # If you want to enable fractional scaling:
+        gsettings set org.gnome.mutter experimental-features "['scale-monitor-framebuffer']"
+
+        # If you want to enable tap-to-click on the touchpad:
+        gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click true
+      args:
+        executable: /bin/bash
+      when: ansible_os_family == "RedHat"
+
+    - name: grubby
+      ansible.builtin.shell: |
+        # Improve power saving for NVMe drives:
+        grubby --update-kernel=ALL --args="nvme.noacpi=1"
+
+        # Prevent a **potencial** Fedora freezing issue:
+        grubby --update-kernel=ALL --args="i915.enable_psr=0"
+      args:
+        executable: /bin/bash
+      when: ansible_os_family == "RedHat"
+
+    - name: Install packages
+      ansible.builtin.dnf:
+        name:
+        - fprintd
+        - fprintd-pam
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Create fingerprint service
+      ansible.builtin.lineinfile:
+        path: /usr/lib/systemd/system/fprintd.service
+        line: |
+          [Install]
+          WantedBy=multi-user.target
+        state: present
+        create: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: Start fprintd.service
+      ansible.builtin.systemd:
+        name: fprintd.service
+        state: started
+        enabled: yes
+      when: ansible_os_family == "RedHat"

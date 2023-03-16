@@ -1,0 +1,221 @@
+# code: language=ansible
+
+---
+- hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+  debugger: on_failed
+  any_errors_fatal: true
+  vars:
+    os_environment:
+      - key: EDITOR
+        value: vim
+    container_name: ubuntu
+    container_image: ubuntu:latest
+    container_command: sleep 1d
+  pre_tasks:
+    - name: Get running ansible user
+      ansible.builtin.set_fact:
+        local_user: "{{ lookup('env', 'USER') }}"
+        home_dir: "{{ lookup('env', 'HOME') }}"
+        cacheable: true
+      delegate_to: localhost
+      # tags: qa
+
+    - name: Get OS release
+      ansible.builtin.set_fact:
+        os_release: "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}"
+        major_ver: "{{ ansible_distribution_major_version }}"
+        distro: "{{ ansible_distribution }}"
+      # tags: qa
+
+    - name: Cross-platform dependencies
+      ansible.builtin.package:
+        name:
+        - acl
+        - ansible
+        - ansible-lint
+        - bats
+        - ca-certificates
+        - cloud-init
+        - git
+        - python3
+        - python3-redis
+        - qemu-guest-agent
+        - tree
+        - vim
+        state: present
+
+    - name: Enable redis
+      ansible.builtin.service:
+        name: redis
+        enabled: true
+        state: started
+  tasks:
+    - name: Setup directory for git repos
+      ansible.builtin.file:
+        path: "{{ home_dir }}/git"
+        state: directory
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        # mode: 01777
+        recurse: true
+
+    - name: Install debian dependencies
+      ansible.builtin.apt:
+        name:
+        - apt-transport-https
+        - bats
+        - build-essential
+        - ca-certificates
+        - cloud-init
+        - curl
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - gnupg-agent
+        - net-tools
+        - python3
+        - python3-pip
+        - software-properties-common
+        - tree
+        - vim
+        update_cache: yes
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install redhat dependencies
+      ansible.builtin.dnf:
+        name:
+        - automake
+        - checkpolicy
+        - containerd.io
+        - dnf-plugins-core
+        - docker-ce
+        - docker-ce-cli
+        - docker-compose-plugin
+        - gcc
+        - gcc-c++
+        - git
+        - kernel-devel
+        - make
+        - ncurses-devel
+        - openssl-devel
+        - policycoreutils
+        - policycoreutils-python-utils
+        - python3-devel
+        - python3-pip
+        - python3-psutil
+        - python3-setuptools
+        - python3-wheel
+        - redhat-rpm-config
+        - rpm-build
+        - rpmdevtools
+        - terraform
+        - vim-enhanced
+        update_cache: yes
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Enable rpmfusion repos
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: present
+        disable_gpg_check: yes
+      with_items:
+        - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{major_ver}}.noarch.rpm"
+        - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{major_ver}}.noarch.rpm"
+
+    - name: Accept GPG keys
+      ansible.builtin.shell: |
+        rpm --import https://packages.cloud.google.com/yum/doc/yum-key.gpg
+        rpm --import https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+      args:
+        executable: /bin/bash
+      when: ansible_os_family == "RedHat"
+
+    - name: Add /etc/yum.repos.d/kubernetes.repo
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/kubernetes.repo
+        content: |
+          [kubernetes]
+          name=Kubernetes
+          baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+          enabled=1
+          gpgcheck=1
+          repo_gpgcheck=1
+          gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+                 https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+        owner: root
+        group: root
+        mode: 0644
+      when: ansible_os_family == "RedHat"
+
+    - name: Install k8s dependencies
+      ansible.builtin.dnf:
+        name:
+        - helm
+        - kubeadm
+        - kubectl
+        update_cache: yes
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Install k3d
+      ansible.builtin.shell: |
+        curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+      args:
+        executable: /bin/bash
+      when: ansible_os_family == "RedHat"
+
+    - name: Add extra repos
+      ansible.builtin.shell: |
+        dnf config-manager --add-repo https://download.docker.com/linux/{{ distro | lower }}/docker-ce.repo
+        dnf config-manager --add-repo https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+      args:
+        executable: /bin/bash
+      when: ansible_os_family == "RedHat"
+
+    - name: Whitelist docker network
+      ansible.posix.firewalld:
+        zone: trusted
+        interface: docker0
+        permanent: yes
+        state: enabled
+
+    - name: Enable docker service
+      ansible.builtin.service:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Add user to docker group
+      ansible.builtin.user:
+        name: "{{ local_user }}"
+        groups: docker
+        append: yes
+
+    - name: Install docker python module
+      pip:
+        name: docker
+        state: present
+
+    - name: Pull default Docker image
+      community.docker.docker_image:
+        name: "{{ container_image }}"
+        source: pull
+
+    - name: Create default containers
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        image: "{{ container_image }}"
+        command: "{{ container_command }}"
+        state: present
+
+    - name: Update Packages
+      ansible.builtin.dnf:
+        name: "*"
+        update_cache: yes
+        state: "latest"
+      when: ansible_os_family == "RedHat"

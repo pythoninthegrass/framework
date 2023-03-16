@@ -1,0 +1,140 @@
+# code: language=ansible
+
+---
+- hosts: localhost
+  become: true
+  gather_facts: true
+  debugger: on_failed
+  any_errors_fatal: true
+  vars:
+    os_environment:
+      - key: EDITOR
+        value: vim
+  pre_tasks:
+    - name: Get running ansible user
+      ansible.builtin.set_fact:
+        local_user: "{{ lookup('env', 'USER') }}"
+        cacheable: true
+      delegate_to: localhost
+    - name: Install git
+      ansible.builtin.package:
+        name: git
+        state: present
+  tasks:
+    - name: Checkout hardening repo
+      ansible.builtin.git:
+        repo: 'https://github.com/pythoninthegrass/ansible-role-hardening'
+        dest: /etc/ansible/roles/hardening
+        version: master
+
+    - name: Take ownership of hardening repo
+      ansible.builtin.file:
+        path: /etc/ansible/roles/hardening
+        state: directory
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        # mode: 01777
+        recurse: true
+
+    - name: Include the hardening role
+      ansible.builtin.include_role:
+        name: hardening
+      vars:
+        # * custom vars
+        # resolv_conf: false
+        ssh_conf: false
+        # * built-in vars
+        auditd_apply_audit_rules: false
+        block_blacklisted: true
+        cron: true
+        disable_wireless: false
+        disable_ipv6: false
+        dns: 127.0.0.1 1.1.1.1
+        fallback_dns: 9.9.9.9 1.0.0.1
+        # resolv_conf: false
+        install_aide: false
+        reboot_ubuntu: false
+        fs_modules_blocklist:
+          - cramfs
+          - freevxfs
+          - hfs
+          - hfsplus
+          - jffs2
+          - squashfs
+          - udf
+        misc_modules_blocklist:
+          - bluetooth
+          - bnep
+          - btusb
+          - can
+          - cpia2
+          - firewire-core
+          - floppy
+          - n_hdlc
+          - net-pf-31
+          - pcspkr
+          - soundcore
+          - thunderbolt
+          - usb-midi
+          - usb-storage
+          - uvcvideo
+          - v4l2_common
+        net_modules_blocklist:
+          - atm
+          - dccp
+          - sctp
+          - rds
+          - tipc
+        ntp: 0.ubuntu.pool.ntp.org 1.ubuntu.pool.ntp.org
+        fallback_ntp: 2.ubuntu.pool.ntp.org 3.ubuntu.pool.ntp.org
+        system_upgrade: false
+        packages_blocklist:
+          - apport*
+          - autofs
+          - avahi*
+          - avahi-*
+          - beep
+          - pastebinit
+          - popularity-contest
+          - prelink
+          - talk*
+          - telnet*
+          - tftp*
+          - whoopsie
+          - xinetd
+          - yp-tools
+          - ypbind
+        packages_ubuntu:
+          - apt-transport-https
+          - bats
+          - build-essential
+          - ca-certificates
+          - curl
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - gnupg-agent
+          - net-tools
+          - python3
+          - python3-pip
+          - software-properties-common
+          - tree
+          - vim
+        ufw_enable: false
+        ufw_outgoing_traffic:
+          - 22
+          - 53
+          - 80
+          - 123
+          - 443
+          - 853
+          - 1812
+          - 18120
+        delete_users:
+          - games
+          - gnats
+          - irc
+          - list
+          - news
+          - sync
+          - uucp

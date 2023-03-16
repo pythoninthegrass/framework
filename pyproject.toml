@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "multipass-poc"
+version = "0.1.0"
+description = ""
+authors = ["pythoninthegrass <4097471+pythoninthegrass@users.noreply.github.com>"]
+readme = "README.md"
+packages = [{include = "multipass_poc"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+ansible = "^7.2.0"
+ansible-lint = { version = "^6.9.0", markers = "platform_system != 'Windows'" }
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

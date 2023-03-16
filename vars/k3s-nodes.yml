@@ -1,0 +1,3 @@
+k3s-master: "--mem 4G --disk 5G 22.04"
+k3s-agent-01: "--mem 2G --disk 5G 22.04"
+k3s-agent-02: "--mem 2G --disk 5G 22.04"

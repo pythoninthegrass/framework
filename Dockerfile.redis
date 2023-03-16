@@ -1,0 +1,9 @@
+# syntax = docker/dockerfile:1.4
+
+ARG REDIS_VERSION=7.0.9
+FROM redis:${REDIS_VERSION}-bullseye
+WORKDIR /data
+COPY redis.conf /data/redis.conf
+EXPOSE ${PORT:-6379}
+ENTRYPOINT [ "/usr/local/bin/redis-server" ]
+CMD [ "/data/redis.conf" ]

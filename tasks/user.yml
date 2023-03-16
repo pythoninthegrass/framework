@@ -1,0 +1,79 @@
+# code: language=ansible
+
+---
+- hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+  # debugger: on_failed
+  any_errors_fatal: true
+  vars:
+    os_environment:
+      - key: EDITOR
+        value: vim
+  pre_tasks:
+    - name: Install pip
+      ansible.builtin.package:
+        name: python3-pip
+        state: present
+
+    - name: Install jmespath
+      ansible.builtin.pip:
+        name: jmespath
+        state: present
+  tasks:
+    - name: Read .env file
+      ansible.builtin.slurp:
+        src: ../vars/.env.json
+      register: result
+      tags: qa
+
+    - name: Users from .env file
+      set_fact:
+        users: "{{ (result.content | b64decode) | from_json | json_query('users[?name != \"\"].name') }}"
+        keys: "{{ (result.content | b64decode) | from_json | json_query('users[?key != \"\"].key') }}"
+      tags: qa
+
+    - name: Validate users and authorized_keys variables
+      ansible.builtin.assert:
+        that:
+          - env_vars is defined
+        fail_msg: "users variable is not defined or empty"
+        quiet: true
+
+    - name: Create groups from usernames
+      ansible.builtin.group:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - "{{ users }}"
+
+    - name: Create user
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: ["{{ item }}", wheel]
+        state: present
+        shell: /bin/bash
+        create_home: true
+      with_items:
+        - "{{ users }}"
+
+    # TODO: QA
+    - name: Add user public ssh key
+      ansible.builtin.authorized_key:
+        user: "{{ item.0 }}"
+        key: "{{ item.1 }}"
+        state: present
+      with_together:
+        - {{ users }}
+        - {{ keys }}
+      tags: qa
+
+    - name: Validate the sudoers file before saving
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: '^%sudo ALL='
+        line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+        validate: /usr/sbin/visudo -cf %s
+      # tags: user

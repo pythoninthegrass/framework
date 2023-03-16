@@ -102,3 +102,28 @@
         state: started
         enabled: yes
       when: ansible_os_family == "RedHat"
+
+    - name: Print manual fingerprint instructions
+      ansible.builtin.debug:
+        msg: |
+          # Erase any old fingerprints
+          fprintd-delete $USER
+
+          # Enroll your new fingerprint
+          fprintd-enroll
+
+          # Verify your new fingerprint
+          fprintd-verify
+
+          # Make sure PAM is authenticated for your fingerprint
+
+          sudo authselect enable-feature with-fingerprint
+          sudo authselect apply-changes
+
+          # Verify it that the fingerprint reader is authorized
+          # This will list what has been authorized.
+
+          sudo authselect current
+
+          If authselect looks good, upon reboot, your fingerprint will allow you login.
+      when: ansible_os_family == "RedHat"

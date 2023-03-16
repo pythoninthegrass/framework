@@ -18,7 +18,7 @@ check:  ## set environment variables
 	@echo "Checking environment..."
 	@echo "UNAME: ${UNAME}"
 	@echo "SHELL: ${SHELL}"
-	if [[ "${UNAME}" == "Linux" ]] \
+	if [[ "${UNAME}" == "Linux" ]]; then \
 		. /etc/os-release; \
 	fi
 

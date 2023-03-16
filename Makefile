@@ -48,7 +48,35 @@ git: check ## install git
 		echo "Unsupported OS"; \
 	fi
 
-ansible: check ## install ansible
+python: check ## install python
+	@echo "Installing Python..."
+	if [[ "${UNAME}" == "Darwin" ]]; then \
+		brew install python; \
+	elif [[ "$${ID}" == "ubuntu" ]]; then \
+		sudo apt install -y python3; \
+	elif [[ "$${ID}" == "fedora" ]]; then \
+		sudo dnf install -y python3; \
+	elif [[ "$${ID}" == "arch" ]]; then \
+		sudo pacman -S python; \
+	else \
+		echo "Unsupported OS"; \
+	fi
+
+pip: check python ## install pip
+	@echo "Installing Pip..."
+	if [[ "${UNAME}" == "Darwin" ]]; then \
+		brew install pip; \
+	elif [[ "$${ID}" == "ubuntu" ]]; then \
+		sudo apt install -y python3-pip; \
+	elif [[ "$${ID}" == "fedora" ]]; then \
+		sudo dnf install -y python3-pip; \
+	elif [[ "$${ID}" == "arch" ]]; then \
+		sudo pacman -S python-pip; \
+	else \
+		echo "Unsupported OS"; \
+	fi
+
+ansible: check pip ## install ansible
 	@echo "Installing Ansible..."
 	if [[ "${UNAME}" == "Darwin" ]]; then \
 		brew install ansible ansible-lint; \
@@ -70,7 +98,7 @@ just: check ## install justfile
 		echo "Unsupported OS"; \
 	fi
 
-install: xcode homebrew git ansible just  ## install all dependencies
+install: xcode homebrew git python pip ansible just  ## install all dependencies
 
 help: ## Show this help.
 	@echo ''

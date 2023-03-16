@@ -39,9 +39,9 @@ git: check ## install git
 	if [[ "${UNAME}" == "Darwin" ]] && [[ $(command -v brew; echo $?) -eq 0 ]]; then \
 		brew install git; \
 	elif [[ "$${ID}" == "ubuntu" ]]; then \
-		sudo apt install git; \
+		sudo apt install -y git; \
 	elif [[ "$${ID}" == "fedora" ]]; then \
-		sudo dnf install git; \
+		sudo dnf install -y git; \
 	elif [[ "$${ID}" == "arch" ]]; then \
 		sudo pacman -S git; \
 	else \
@@ -61,9 +61,9 @@ just: check ## install justfile
 	if [[ "${UNAME}" == "Darwin" ]]; then \
 		brew install just; \
 	elif [[ "$${ID}" == "ubuntu" ]]; then \
-		sudo apt install just; \
+		sudo apt install -y just; \
 	elif [[ "$${ID}" == "fedora" ]]; then \
-		sudo dnf install just; \
+		sudo dnf install -y just; \
 	elif [[ "$${ID}" == "arch" ]]; then \
 		sudo pacman -S just; \
 	else \

@@ -1,0 +1,50 @@
+# SOURCE: https://starship.rs/config
+
+# DEBUG via: `starship explain`
+
+# Timeout for commands executed by starship (ms)
+command_timeout = 1000
+
+# Replace the "❯"
+[character]
+success_symbol = "[λ](green)"
+error_symbol = "[λ](red)"
+
+[username]
+style_user = "green bold"
+style_root = "red bold"
+format = "[$user]($style)"
+disabled = false
+show_always = true
+
+[hostname]
+ssh_only = false
+format = "[@$hostname](green bold) "
+disabled = false
+
+# truncation length works backwards (i.e., cwd > parent > parent ...)
+[directory]
+truncation_length = 10
+truncation_symbol = "…/"
+truncate_to_repo = true
+
+[env_var.SHELL]
+variable = "SHELL"
+default = "unknown shell"
+disabled = true
+
+# Show python version starting with venv
+[python]
+python_binary = ["./venv/bin/python", "python3", "python", "python2"]
+
+[aws]
+disabled = true
+
+[docker_context]
+disabled = true
+
+[gcloud]
+disabled = true
+
+[nodejs]
+disabled = true

@@ -210,6 +210,14 @@
       become: true
       when: ansible_os_family == "RedHat"
 
+    - name: Install pip packages
+      ansible.builtin.pip:
+        name:
+        - pipx
+        - tldr
+      become: false
+      tags: qa
+
     - name: Install multimedia
       ansible.builtin.shell: |
         dnf groupinstall -y "Multimedia"

@@ -18,8 +18,18 @@
       ansible.builtin.set_fact:
         local_user: "{{ lookup('env', 'USER') }}"
         home_dir: "{{ lookup('env', 'HOME') }}"
+        work_dir: "{{ playbook_dir | dirname }}"
         cacheable: true
-      delegate_to: localhost
+      tags: qa
+
+    - name: Top-level directory in project
+      ansible.builtin.shell: git rev-parse --show-toplevel
+      register: tld
+      tags: qa
+
+    - name: Set tld stdout fact
+      ansible.builtin.set_fact:
+        tld: "{{ tld.stdout }}"
       tags: qa
 
     - name: Get OS release
@@ -38,6 +48,7 @@
         - bats
         - ca-certificates
         - cloud-init
+        - fzf
         - git
         - inxi
         - python3
@@ -157,6 +168,7 @@
       ansible.builtin.dnf:
         name:
         - automake
+        - bat
         - budgie-desktop
         - checkpolicy
         - containerd.io
@@ -259,6 +271,7 @@
         - kubectl
         - kubectx
         - kustomize
+        - lazydocker https://github.com/comdotlinux/asdf-lazydocker.git
         - nodejs
         - python
         - ruby
@@ -269,6 +282,7 @@
       ansible.builtin.shell: |
         source {{ home_dir }}/.asdf/asdf.sh
         asdf install {{ item }} latest
+        asdf global {{ item }} latest
       args:
         executable: /bin/bash
       with_items:
@@ -280,6 +294,7 @@
         - kubectl
         - kubectx
         - kustomize
+        - lazydocker
         - nodejs
         - python
         - ruby
@@ -325,7 +340,7 @@
         enabled: true
         state: started
       become: true
-      tags: qa
+      # tags: qa
 
     - name: Add user to docker group
       ansible.builtin.user:

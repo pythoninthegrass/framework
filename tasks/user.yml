@@ -3,7 +3,6 @@
 ---
 - hosts: localhost
   connection: local
-  become: true
   gather_facts: true
   # debugger: on_failed
   any_errors_fatal: true
@@ -12,39 +11,46 @@
       - key: EDITOR
         value: vim
   pre_tasks:
-    - name: Install pip
-      ansible.builtin.package:
-        name: python3-pip
-        state: present
+    - name: Get running ansible user
+      ansible.builtin.set_fact:
+        local_user: "{{ lookup('env', 'USER') }}"
+        home_dir: "{{ lookup('env', 'HOME') }}"
+        work_dir: "{{ playbook_dir | dirname }}"
+        cacheable: true
+      tags: qa
 
-    - name: Install jmespath
-      ansible.builtin.pip:
-        name: jmespath
-        state: present
+    - name: Top-level directory in project
+      ansible.builtin.shell: git rev-parse --show-toplevel
+      register: tld
+      tags: qa
+
+    - name: Set tld stdout fact
+      ansible.builtin.set_fact:
+        tld: "{{ tld.stdout }}"
+      tags: qa
+
+    - name: Get OS release
+      ansible.builtin.set_fact:
+        os_release: "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}"
+        major_ver: "{{ ansible_distribution_major_version }}"
+        distro: "{{ ansible_distribution }}"
+      tags: qa
+
+    - name: Generate ssh key
+      ansible.builtin.openssh_keypair:
+        path: "{{ home_dir }}/.ssh/id_rsa"
+        size: 4096
+        type: rsa
+        comment: "{{ local_user }}@{{ ansible_fqdn }}"
+        force: false
   tasks:
-    - name: Read .env file
-      ansible.builtin.slurp:
-        src: ../vars/.env.json
-      register: result
-
-    - name: Users from .env file
-      set_fact:
-        users: "{{ (result.content | b64decode) | from_json | json_query('users[?name != \"\"].name') }}"
-        keys: "{{ (result.content | b64decode) | from_json | json_query('users[?key != \"\"].key') }}"
-
-    - name: Validate users and authorized_keys variables
-      ansible.builtin.assert:
-        that:
-          - env_vars is defined
-        fail_msg: "users variable is not defined or empty"
-        quiet: true
-
-    - name: Create groups from usernames
+    - name: Create group from username
       ansible.builtin.group:
         name: "{{ item }}"
         state: present
       with_items:
-        - "{{ users }}"
+        - ansible
+      become: true
 
     - name: Create user
       ansible.builtin.user:
@@ -52,19 +58,29 @@
         groups: ["{{ item }}", wheel]
         state: present
         shell: /bin/bash
-        create_home: true
+        create_home: false
       with_items:
-        - "{{ users }}"
+        - ansible
+      become: true
 
-    - name: Add user public ssh key
+    - name: Generate ssh key for user
+      ansible.builtin.openssh_keypair:
+        path: "{{ home_dir }}/.ssh/ansible"
+        size: 4096
+        type: rsa
+        comment: "{{ item }}@{{ ansible_fqdn }}"
+        force: false
+      with_items:
+        - ansible
+
+    # TODO: QA
+    - name: Add user public ssh keys
       ansible.builtin.authorized_key:
-        user: "{{ item.0 }}"
-        key: "{{ item.1 }}"
+        user: "{{ local_user }}"
+        key: "{{ lookup('file', item) }}"
         state: present
-      with_together:
-        - "{{ users }}"
-        - "{{ keys }}"
-      # tags: qa
+      with_items:
+        - "{{ home_dir }}/.ssh/ansible.pub"
 
     - name: Set vim as default sudoers editor
       ansible.builtin.lineinfile:
@@ -75,22 +91,24 @@
         validate: /usr/sbin/visudo -cf %s
       when: ansible_os_family == "RedHat"
 
-    - name: Check if wheel nopasswd is enabled
+    - name: Disable standard wheel group
       ansible.builtin.lineinfile:
-        state: absent
-        path: "/etc/sudoers"
-        regexp: "%wheel ALL=(ALL) NOPASSWD: ALL"
-      check_mode: true
-      register: check
+        path: /etc/sudoers
+        state: present
+        regexp: '^%wheel\s+ALL=\(ALL\)\s+ALL$'
+        firstmatch: true
+        line: '# %wheel  ALL=(ALL)       ALL'
+        validate: /usr/sbin/visudo -cf %s
       when: ansible_os_family == "RedHat"
-      tags: qa
+      become: true
 
     - name: Enable wheel nopasswd
       ansible.builtin.lineinfile:
         path: /etc/sudoers
         state: present
-        regexp: '^%wheel ALL='
-        line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+        regexp: '^#\s%wheel\s+ALL=\(ALL\)\s+NOPASSWD:\s?ALL$'
+        firstmatch: true
+        line: '%wheel  ALL=(ALL)      NOPASSWD:ALL'
         validate: /usr/sbin/visudo -cf %s
-      when: ansible_os_family == "RedHat" and check.found == 1
-      tags: qa
+      when: ansible_os_family == "RedHat"
+      become: true

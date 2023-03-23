@@ -1,0 +1,178 @@
+# Verify that shell is interactive
+if [[ $- != *i* ]]; then return; fi
+
+# shellcheck disable=all
+
+# # .bashrc profiling start
+# exec 5> >(ts -i "%.s" >> /tmp/bashrc.log)
+# export BASH_XTRACEFD=5
+# PS4=":${BASH_SOURCE[0]##*/}:$LINENO+"; set -x
+
+# dotdrop
+alias dotdrop="dotdrop --cfg=$HOME/dotfiles/config.yaml"
+export DOTDROP_PROFILE="work"
+
+# PATH
+export ASDF_DIR="$HOME/.asdf"
+export N_PREFIX="$HOME/.n"
+export GEM_HOME="$HOME/gems"
+export KREW_ROOT="$HOME/.krew"
+export RUST_WITHOUT="rust-docs"
+export PATH="$RBENV_DIR/shims:$ASDF_DIR/shims:$HOME/.local/bin:$KREW_ROOT/bin:$GEM_HOME/bin:$N_PREFIX/bin:$BREW_PREFIX/bin:/usr/local/opt/gnu-getopt/bin:/usr/local/bin:/usr/local:/usr/local/sbin:$HOME/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+export GOPATH=$(go env GOPATH)
+export GOROOT=$(go env GOROOT)
+export GOBIN=$(go env GOBIN)
+export PATH=$PATH:$GOPATH/bin
+export PATH=$PATH:$GOROOT/bin
+export PATH=$PATH:$GOBIN
+export PATH=$(echo -n $PATH | awk -v RS=: -v ORS=: '!x[$0]++' | sed "s/\(.*\).\{1\}/\1/")
+
+# shell completions
+[[ -f "$ASDF_DIR/asdf.sh" ]] && . "$ASDF_DIR/asdf.sh"
+[[ -f "$ASDF_DIR/completions/asdf.bash" ]] && . "$ASDF_DIR/completions/asdf.bash"
+[[ -r "$BASH_COMPLETION_COMPAT_DIR/bash_completion.sh" ]] && . "$BASH_COMPLETION_COMPAT_DIR/bash_completion.sh"
+[[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
+[[ -f "$HOME/.fzf.bash" ]] && . "$HOME/.fzf.bash"
+[[ -f "$HOME/.gitleaks.bash" ]] && . "$HOME/.gitleaks.bash"
+[[ -f "$HOME/.just.bash" ]] && . "$HOME/.just.bash"
+
+# rbenv aliases
+eval "$(rbenv init - bash)"
+
+# Vim Default Editor
+export EDITOR="lvim"
+
+# GLOBAL BASH HISTORY
+# Avoid duplicates
+HISTCONTROL=ignoredups:erasedups
+# When the shell exits, append to the history file instead of overwriting it
+shopt -s histappend
+
+# After each command, append to the history file and reread it
+PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND$'\n'}history -a; history -c; history -r"
+
+# PS1 Prompt
+# export PS1="[ \u@\H \w ] \\$\[$(tput sgr0)\] "
+
+# Forward search in bash (step forward via ctrl-s)
+stty -ixon
+
+# Set default blocksize for ls, df, du
+export BLOCKSIZE=1k
+
+# python
+# macOS: verify brew symlinks via `brew link --overwrite python`
+# alias python='python3'
+export PYTHONSTARTUP="$HOME/.config/startup.py"
+pip_install() { python -m pip install --user $@; }
+pip_uninstall() { python -m pip uninstall -y $@; }
+eval "$(register-python-argcomplete pipx)"
+export PIPX_DEFAULT_PYTHON="$ASDF_DIR/shims/python"
+
+# thefuck
+eval "$(thefuck --alias)"
+alias f='fuck'
+export THEFUCK_RULES='sudo:no_command'
+export THEFUCK_REQUIRE_CONFIRMATION='false'
+
+# starship
+colorscript -e random # crunch, random
+eval "$(starship init bash)"
+
+# make threads
+# export MAKE="make -j$(nproc)"
+
+# k8s
+export KUBECONFIG="$HOME/.kube/config:$HOME/.kube/kubeconfig:$HOME/.kube/k3s.yaml"
+alias k="kubectl"
+alias kc="kubectl config use-context"
+alias kns='kubectl config set-context --current --namespace'
+alias kgns="kubectl config view --minify --output 'jsonpath={..namespace}' | xargs printf '%s\n'"
+alias ds="devspace"
+source <(kubectl completion bash)
+complete -o default -F __start_kubectl k
+# source <(k3d completion bash)
+alias mk="minikube"
+
+# argo
+alias argo="argo -n argo"                                                                                                   # set namespace to 'argo'
+
+# ALIAS
+alias vim='lvim'                                                                                                            # lunarvim
+alias mkdir='mkdir -pv'                                                                                                     # Preferred 'mkdir' implementation
+alias ll='ls -FGlAhp'                                                                                                       # Preferred 'ls' implementation
+alias ..='cd ../'                                                                                                           # Go back 1 directory level
+alias ...='cd ../../'                                                                                                       # Go back 2 directory levels
+alias diff='diff -W $(( $(tput cols) - 2 ))'                                                                                # Full Terminal Width in Side-by-Side Mode
+alias ex-ip='curl icanhazip.com'                                                                                            # Your public IP address
+alias open-ports='sudo lsof -i | grep LISTEN'                                                                               # All listening connections
+alias show-blocked='sudo ipfw list'                                                                                         # All ipfw rules inc/ blocked IPs
+alias bat='bat --paging=never'                                                                                              # cat clone via go
+alias lzd='lazydocker'                                                                                                      # Docker TUI
+
+# FUNCTIONS
+cd() { builtin cd "$@"; ll; }                                                                                               # Always list directory contents upon 'cd'
+iface() { route get 0.0.0.0 2>/dev/null | awk '/interface: / {print $2}'; }                                                 # Network interface
+mkpasswd() { docker run -it --rm alpine mkpasswd -m sha-512 "$@"; }                                                         # Pull mkpasswd and hash password
+make() {
+    if [[ ! -z "$1"  ]]; then
+        make -f "$@"
+    fi
+}
+# Recursively remove references to "git secrets" from webhooks in all repositories
+rm_git-secrets() {
+    echo "Removing git-secrets from $(pwd)" ;
+    find . -regex '.*/\.git/hooks/commit-msg' -exec sed -i '' -e 's/git secrets --commit_msg_hook -- "$@"//' {} \;
+    find . -regex '.*/\.git/hooks/pre-commit' -exec sed -i '' -e 's/git secrets --pre_commit_hook -- "$@"//' {} \;
+    find . -regex '.*/\.git/hooks/prepare-commit-msg' -exec sed -i '' -e 's/git secrets --prepare_commit_msg_hook -- "$@"//' {} \;
+    echo "Fini!" ;
+}
+
+# gam
+# gam() { "$HOME/bin/gam/gam" "$@" ; }  # OG
+gam() { "$HOME/bin/gamadv-xtd3/gam" "$@" ; }
+
+# Codi (https://github.com/metakirby5/codi.vim)
+# Usage: codi [filetype] [filename]
+codi() {
+  local syntax="${1:-python}"
+  shift
+  vim -c \
+    "let g:startify_disable_at_vimenter = 1 |\
+    set bt=nofile ls=0 noru nonu nornu |\
+    hi ColorColumn ctermbg=NONE |\
+    hi VertSplit ctermbg=NONE |\
+    hi NonText ctermfg=0 |\
+    Codi $syntax" "$@"
+}
+
+# aws
+export AWS_VAULT_PROMPT=terminal
+export AWS_DEFAULT_PROFILE="dev.use1"
+# export AWS_VAULT_KEYCHAIN_NAME=login
+# hostname_from_instance() {
+#      echo $(aws ec2 describe-instances --filters "{\"Name\":\"tag:Name\", \"Values\":[\"$1\"]}" --query='Reservations[0].Instances[0].PublicDnsName' | tr -d '"') ;
+# }
+
+# ip_from_instance() {
+#      echo $(aws ec2 describe-instances --filters "{\"Name\":\"tag:Name\", \"Values\":[\"$1\"]}" --query='Reservations[0].Instances[0].PublicIpAddress' | tr -d '"')  ;
+# }
+
+# ssh-aws() { ssh -i ~/.ssh/it-us-east-1.pem ubuntu@$(ip_from_instance "$1") ; }
+
+# playwright (firewall prompt)
+alias sign-playwright="sudo codesign --force --deep \
+    --sign - $HOME/Library/Caches/ms-playwright/chromium-*/chrome-mac/Chromium.app"
+
+# terraform
+alias tf='AWS_PROFILE="" terraform'
+alias tfi='AWS_PROFILE="" terraform init -backend-config=./state.conf'
+alias tfa='AWS_PROFILE="" terraform apply'
+alias tfp='AWS_PROFILE="" terraform plan'
+alias tfpn='AWS_PROFILE="" terraform plan -refresh=false'
+
+# multipass
+alias m='multipass'
+
+# # .bashrc profiling end
+# set +x

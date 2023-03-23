@@ -1,0 +1,109 @@
+# code: language=ansible
+
+---
+- hosts: localhost
+  connection: local
+  gather_facts: true
+  # debugger: on_failed
+  any_errors_fatal: true
+  vars:
+    os_environment:
+      - key: EDITOR
+        value: vim
+  pre_tasks:
+      - name: Get running ansible user
+        ansible.builtin.set_fact:
+          local_user: "{{ lookup('env', 'USER') }}"
+          home_dir: "{{ lookup('env', 'HOME') }}"
+          work_dir: "{{ playbook_dir | dirname }}"
+          cacheable: true
+
+      - name: Top-level directory in project
+        ansible.builtin.shell: git rev-parse --show-toplevel
+        register: tld
+
+      - name: Set tld stdout fact
+        ansible.builtin.set_fact:
+          tld: "{{ tld.stdout }}"
+
+      - name: Get OS release
+        ansible.builtin.set_fact:
+          os_release: "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}"
+          major_ver: "{{ ansible_distribution_major_version }}"
+          distro: "{{ ansible_distribution }}"
+  tasks:
+    - name: .bashrc
+      ansible.builtin.copy:
+        src: config/.bashrc.fedora
+        dest: "{{ home_dir }}/.bashrc"
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: 0644
+        backup: yes
+        force: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: .bash_profile
+      ansible.builtin.replace:
+        path: "{{ home_dir }}/.bash_profile"
+        regexp: '^\# \.bash_profile\n\n\# Get.*\nif.*\n\t\.\s.*\nfi\n\n\# User.*'
+        replace: |
+          [[ -s ~/.bashrc ]] && source ~/.bashrc
+      when: ansible_os_family == "RedHat"
+
+    - name: Create ~/.cargo directory
+      ansible.builtin.file:
+        path: "{{ home_dir }}/.cargo"
+        state: directory
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: 0755
+
+    - name: cargo env
+      ansible.builtin.copy:
+        src: "{{ tld }}/config/cargo.env"
+        dest: "{{ home_dir }}/.cargo/env"
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: 0644
+        force: yes
+
+    - name: requirements.txt
+      ansible.builtin.pip:
+        requirements: "{{ tld }}/config/requirements.txt"
+        state: present
+        extra_args: --user
+
+    - name: startup.py
+      ansible.builtin.copy:
+        src: "{{ tld }}/config/startup.py"
+        dest: "{{ home_dir }}/.config/startup.py"
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: 0644
+        force: yes
+
+    - name: fzf completion
+      ansible.builtin.copy:
+        src: "{{ tld }}/config/.fzf.bash"
+        dest: "{{ home_dir }}/.fzf.bash"
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: 0644
+        force: yes
+
+    - name: Download shell-color-scripts
+      ansible.builtin.git:
+        repo: https://gitlab.com/dwt1/shell-color-scripts.git
+        dest: "{{ home_dir }}/git/shell-color-scripts"
+        version: master
+        force: yes
+        update: yes
+        accept_hostkey: yes
+
+    - name: Install shell-color-scripts
+      ansible.builtin.shell:
+        cmd: make install
+        chdir: "{{ home_dir }}/git/shell-color-scripts"
+        executable: /bin/bash
+      become: true

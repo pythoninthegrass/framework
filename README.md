@@ -2,6 +2,20 @@
 
 Implement the [official Fedora install guide](https://guides.frame.work/Guide/Fedora+37+Installation+on+the+Framework+Laptop/108) from Framework via Ansible. [Using Ansible](#using-ansible) and below are from the excellent [Ansible template repo](https://github.com/acch/ansible-boilerplate) by [@acch](https://github.com/acch).
 
+## Quickstart
+```bash
+# install dependencies
+make install
+python -m pip install ansible ansible-lint
+
+# run playbook
+# * become (sudo)
+# * askpass
+# * tags: foo,bar
+# * verbose
+ansible-playbook tasks/pkg.yml -b -K --tags qa -vvv
+```
+
 ## Using Ansible
 
 Install `ansible` on your laptop and link the `hosts` file from `/etc/ansible/hosts` to the file in your repository. Now you're all set.
@@ -123,4 +137,4 @@ Common | all,check
 
 ## Copyright and license
 
-Copyright 2017 Achim Christ, released under the [MIT license](https://github.com/acch/ansible-boilerplate/blob/master/LICENSE)
+Copyright 2017 Achim Christ, released under the [MIT license](LICENSE.mit)

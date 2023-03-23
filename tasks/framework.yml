@@ -55,16 +55,17 @@
         - dbus-tools
         - dconf
         - gh
-        - gnupg2
         - git
+        - gnupg2
+        - inxi
         - pass
         - python3
-        - python3-redis
         - python3-psutil
+        - python3-redis
         - tree
         - vim
         state: present
-      # tags: qa
+      tags: qa
 
   tasks:
     - name: Enable gnome remote desktop (org.gnome.desktop.remote-desktop.vnc)

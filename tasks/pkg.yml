@@ -3,7 +3,6 @@
 ---
 - hosts: localhost
   connection: local
-  become: true
   gather_facts: true
   # debugger: on_failed
   any_errors_fatal: true
@@ -21,14 +20,14 @@
         home_dir: "{{ lookup('env', 'HOME') }}"
         cacheable: true
       delegate_to: localhost
-      # tags: qa
+      tags: qa
 
     - name: Get OS release
       ansible.builtin.set_fact:
         os_release: "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}"
         major_ver: "{{ ansible_distribution_major_version }}"
         distro: "{{ ansible_distribution }}"
-      # tags: qa
+      tags: qa
 
     - name: Cross-platform dependencies
       ansible.builtin.package:
@@ -47,6 +46,7 @@
         - tree
         - vim
         state: present
+      become: true
 
     # TODO: QA
     # - name: Enable redis
@@ -63,8 +63,9 @@
         group: "{{ local_user }}"
         # mode: 01777
         recurse: true
+      become: false
 
-    - name: Install debian dependencies
+    - name: Install debian packages
       ansible.builtin.apt:
         name:
         - apt-transport-https
@@ -85,6 +86,7 @@
         - vim
         update_cache: yes
         state: present
+      become: true
       when: ansible_os_family == "Debian"
 
     - name: Enable rpmfusion repos
@@ -95,13 +97,16 @@
       with_items:
         - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{major_ver}}.noarch.rpm"
         - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{major_ver}}.noarch.rpm"
+      become: true
 
     - name: Accept GPG keys
       ansible.builtin.shell: |
         rpm --import https://packages.cloud.google.com/yum/doc/yum-key.gpg
         rpm --import https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+        rpm --import https://packages.microsoft.com/keys/microsoft.asc
       args:
         executable: /bin/bash
+      become: true
       when: ansible_os_family == "RedHat"
 
     - name: Add /etc/yum.repos.d/kubernetes.repo
@@ -119,22 +124,44 @@
         owner: root
         group: root
         mode: 0644
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Add VSCode repo
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/vscode.repo
+        content: |
+          [code]
+          name=Visual Studio Code
+          baseurl=https://packages.microsoft.com/yumrepos/vscode
+          enabled=1
+          gpgcheck=1
+          gpgkey=https://packages.microsoft.com/keys/microsoft.asc
+        owner: root
+        group: root
+        mode: 0644
+      become: true
       when: ansible_os_family == "RedHat"
 
     - name: Add extra repos
       ansible.builtin.shell: |
         dnf config-manager --add-repo https://download.docker.com/linux/{{ distro | lower }}/docker-ce.repo
         dnf config-manager --add-repo https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+        dnf config-manager --set-enabled fedora-cisco-openh264
       args:
         executable: /bin/bash
+      become: true
       when: ansible_os_family == "RedHat"
 
-    - name: Install redhat dependencies
+    - name: Install redhat packages
       ansible.builtin.dnf:
         name:
         - automake
+        - budgie-desktop
         - checkpolicy
         - containerd.io
+        - code
+        - curl
         - dnf-plugins-core
         - docker-ce
         - docker-ce-cli
@@ -142,9 +169,15 @@
         - gcc
         - gcc-c++
         - git
+        - gnome-tweaks
+        - gnome-extensions-app
+        - gstreamer1-plugin-openh264
         - kernel-devel
+        - libsodium
         - make
+        - mozilla-openh264
         - ncurses-devel
+        - nemo
         - openssl-devel
         - policycoreutils
         - policycoreutils-python-utils
@@ -153,21 +186,110 @@
         - python3-psutil
         - python3-setuptools
         - python3-wheel
+        - python3-dnf-plugins-extras-versionlock
         - redhat-rpm-config
+        - qt5-qtbase
+        - qt5-qtbase-devel
         - rpm-build
         - rpmdevtools
-        - terraform
         - vim-enhanced
         update_cache: yes
         state: present
+      become: true
       when: ansible_os_family == "RedHat"
+
+    - name: Install multimedia
+      ansible.builtin.shell: |
+        dnf groupinstall -y "Multimedia"
+      args:
+        executable: /bin/bash
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Pin running kernel
+      ansible.builtin.shell: |
+        dnf versionlock kernel
+      args:
+        executable: /bin/bash
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Get starship install script
+      get_url:
+        url: https://starship.rs/install.sh
+        dest: /tmp/starship_install.sh
+        mode: '0755'
+
+    - name: Install starship
+      shell:
+        cmd: /tmp/starship_install.sh --yes
+        executable: /bin/sh
+      become: yes
+
+    - name: Create starship config directory
+      file:
+        path: "{{ home_dir }}/.config/"
+        state: directory
+
+    - name: Copy starship config
+      copy:
+        src: ../config/starship.toml
+        dest: "{{ home_dir }}/.config/starship.toml"
+
+    - name: Download asdf
+      ansible.builtin.git:
+        repo: https://github.com/asdf-vm/asdf.git
+        dest: "{{ home_dir }}/.asdf"
+        version: v0.11.3
+        force: true
+      become: false
+
+    - name: Install asdf plugins
+      ansible.builtin.shell: |
+        source {{ home_dir }}/.asdf/asdf.sh
+        asdf plugin-add {{ item }}
+      args:
+        executable: /bin/bash
+      with_items:
+        - awscli
+        - gcloud
+        - golang
+        - helm
+        - helmfile
+        - kubectl
+        - kubectx
+        - kustomize
+        - nodejs
+        - python
+        - ruby
+        - terraform
+      become: false
+
+    - name: Install latest runtime
+      ansible.builtin.shell: |
+        source {{ home_dir }}/.asdf/asdf.sh
+        asdf install {{ item }} latest
+      args:
+        executable: /bin/bash
+      with_items:
+        - awscli
+        - gcloud
+        - golang
+        - helm
+        - helmfile
+        - kubectl
+        - kubectx
+        - kustomize
+        - nodejs
+        - python
+        - ruby
+        - terraform
+      become: false
 
     - name: Install k8s dependencies
       ansible.builtin.dnf:
         name:
-        - helm
         - kubeadm
-        - kubectl
         update_cache: yes
         state: present
       when: ansible_os_family == "RedHat"
@@ -187,23 +309,22 @@
         echo br_netfilter > /etc/modules-load.d/br_netfilter.conf
       args:
         executable: /bin/bash
-      tags: qa
       when: ansible_os_family == "RedHat"
 
-    # TODO: QA
     - name: Whitelist docker network
       ansible.posix.firewalld:
         zone: trusted
         interface: docker0
         permanent: yes
         state: enabled
-      tags: qa
 
+    # TODO: QA
     - name: Enable docker service
       ansible.builtin.service:
         name: docker
         enabled: true
         state: started
+      become: true
       tags: qa
 
     - name: Add user to docker group
@@ -211,19 +332,21 @@
         name: "{{ local_user }}"
         groups: docker
         append: yes
-      tags: qa
+      become: true
+      # tags: qa
 
     - name: Install docker python module
       pip:
         name: docker
         state: present
-      tags: qa
+      become: false
+      # tags: qa
 
     - name: Pull default Docker image
       community.docker.docker_image:
         name: "{{ container_image }}"
         source: pull
-      tags: qa
+      # tags: qa
 
     - name: Create default containers
       community.docker.docker_container:
@@ -231,7 +354,7 @@
         image: "{{ container_image }}"
         command: "{{ container_command }}"
         state: present
-      tags: qa
+      # tags: qa
 
     - name: Update Packages
       ansible.builtin.dnf:
@@ -239,4 +362,4 @@
         update_cache: yes
         state: "latest"
       when: ansible_os_family == "RedHat"
-      tags: qa
+      # tags: qa

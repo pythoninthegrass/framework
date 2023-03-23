@@ -7,6 +7,7 @@ user_key.pub
 ansible.cfg
 redis.conf
 keys.json
+scratch.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

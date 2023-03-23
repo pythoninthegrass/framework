@@ -137,4 +137,4 @@ Common | all,check
 
 ## Copyright and license
 
-Copyright 2017 Achim Christ, released under the [MIT license](https://github.com/acch/ansible-boilerplate/blob/master/LICENSE)
+Copyright 2017 Achim Christ, released under the [MIT license](LICENSE.mit)

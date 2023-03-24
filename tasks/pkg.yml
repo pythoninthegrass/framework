@@ -3,6 +3,7 @@
 ---
 - hosts: localhost
   connection: local
+  become: false
   gather_facts: true
   # debugger: on_failed
   any_errors_fatal: true
@@ -73,7 +74,7 @@
         owner: "{{ local_user }}"
         group: "{{ local_user }}"
         # mode: 01777
-        recurse: true
+        recurse: false
       become: false
 
     - name: Install debian packages
@@ -85,9 +86,6 @@
         - ca-certificates
         - cloud-init
         - curl
-        - docker-ce
-        - docker-ce-cli
-        - containerd.io
         - gnupg-agent
         - net-tools
         - python3
@@ -175,9 +173,6 @@
         - code
         - curl
         - dnf-plugins-core
-        - docker-ce
-        - docker-ce-cli
-        - docker-compose-plugin
         - gcc
         - gcc-c++
         - git
@@ -194,11 +189,11 @@
         - policycoreutils
         - policycoreutils-python-utils
         - python3-devel
+        - python3-dnf-plugins-extras-versionlock
         - python3-pip
         - python3-psutil
         - python3-setuptools
         - python3-wheel
-        - python3-dnf-plugins-extras-versionlock
         - redhat-rpm-config
         - qt5-qtbase
         - qt5-qtbase-devel
@@ -216,19 +211,10 @@
         - pipx
         - tldr
       become: false
-      tags: qa
 
     - name: Install multimedia
       ansible.builtin.shell: |
         dnf groupinstall -y "Multimedia"
-      args:
-        executable: /bin/bash
-      become: true
-      when: ansible_os_family == "RedHat"
-
-    - name: Pin running kernel
-      ansible.builtin.shell: |
-        dnf versionlock kernel
       args:
         executable: /bin/bash
       become: true
@@ -324,65 +310,9 @@
         executable: /bin/bash
       when: ansible_os_family == "RedHat"
 
-    - name: Activate ip_tables module
-      ansible.builtin.shell: |
-        modprobe ip_tables
-        modprobe br_netfilter
-        echo ip_tables > /etc/modules-load.d/ip_tables.conf
-        echo br_netfilter > /etc/modules-load.d/br_netfilter.conf
-      args:
-        executable: /bin/bash
-      when: ansible_os_family == "RedHat"
-
-    - name: Whitelist docker network
-      ansible.posix.firewalld:
-        zone: trusted
-        interface: docker0
-        permanent: yes
-        state: enabled
-
-    # TODO: QA
-    - name: Enable docker service
-      ansible.builtin.service:
-        name: docker
-        enabled: true
-        state: started
-      become: true
-      # tags: qa
-
-    - name: Add user to docker group
-      ansible.builtin.user:
-        name: "{{ local_user }}"
-        groups: docker
-        append: yes
-      become: true
-      # tags: qa
-
-    - name: Install docker python module
-      pip:
-        name: docker
-        state: present
-      become: false
-      # tags: qa
-
-    - name: Pull default Docker image
-      community.docker.docker_image:
-        name: "{{ container_image }}"
-        source: pull
-      # tags: qa
-
-    - name: Create default containers
-      community.docker.docker_container:
-        name: "{{ container_name }}"
-        image: "{{ container_image }}"
-        command: "{{ container_command }}"
-        state: present
-      # tags: qa
-
     - name: Update Packages
       ansible.builtin.dnf:
         name: "*"
         update_cache: yes
         state: "latest"
       when: ansible_os_family == "RedHat"
-      # tags: qa

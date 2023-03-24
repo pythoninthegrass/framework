@@ -1,0 +1,143 @@
+# code: language=ansible
+
+---
+- hosts: localhost
+  connection: local
+  become: false
+  gather_facts: true
+  # debugger: on_failed
+  any_errors_fatal: true
+  vars:
+    os_environment:
+      - key: EDITOR
+        value: vim
+    container_name: ubuntu
+    container_image: ubuntu:latest
+    container_command: sleep 1d
+  pre_tasks:
+    - name: Get running ansible user
+      ansible.builtin.set_fact:
+        local_user: "{{ lookup('env', 'USER') }}"
+        home_dir: "{{ lookup('env', 'HOME') }}"
+        work_dir: "{{ playbook_dir | dirname }}"
+        cacheable: true
+      tags: qa
+
+    - name: Top-level directory in project
+      ansible.builtin.shell: git rev-parse --show-toplevel
+      register: tld
+      tags: qa
+
+    - name: Set tld stdout fact
+      ansible.builtin.set_fact:
+        tld: "{{ tld.stdout }}"
+      tags: qa
+
+    - name: Get OS release
+      ansible.builtin.set_fact:
+        os_release: "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}"
+        major_ver: "{{ ansible_distribution_major_version }}"
+        distro: "{{ ansible_distribution }}"
+      tags: qa
+
+    - name: Cross-platform dependencies
+      ansible.builtin.package:
+        name:
+        - acl
+        - ansible
+        - ansible-lint
+        - bats
+        - ca-certificates
+        - cloud-init
+        - fzf
+        - git
+        - inxi
+        - python3
+        - python3-redis
+        - python3-psutil
+        - tree
+        - vim
+        state: present
+      become: true
+  tasks:
+    - name: Add extra repos
+      ansible.builtin.shell: |
+        dnf config-manager --add-repo https://download.docker.com/linux/{{ distro | lower }}/docker-ce.repo
+      args:
+        executable: /bin/bash
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Install redhat packages
+      ansible.builtin.dnf:
+        name:
+        - docker-ce
+        - docker-ce-cli
+        - docker-compose-plugin
+        update_cache: yes
+        state: present
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Activate ip_tables module
+      ansible.builtin.shell: |
+        modprobe ip_tables
+        modprobe br_netfilter
+        echo ip_tables > /etc/modules-load.d/ip_tables.conf
+        echo br_netfilter > /etc/modules-load.d/br_netfilter.conf
+      args:
+        executable: /bin/bash
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Whitelist docker network
+      ansible.posix.firewalld:
+        zone: trusted
+        interface: docker0
+        permanent: yes
+        state: enabled
+      become: true
+
+    - name: grubby
+      become: true
+      ansible.builtin.shell: |
+        grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=1"
+      args:
+        executable: /bin/bash
+      when: ansible_os_family == "RedHat"
+
+    - name: Install docker python module
+      ansible.builtin.pip:
+        name: docker
+        state: present
+
+    # TODO: may need reboot
+    - name: Enable docker service
+      ansible.builtin.service:
+        name: docker
+        enabled: true
+        state: started
+      become: true
+      tags: qa
+
+    - name: Add user to docker group
+      ansible.builtin.user:
+        name: "{{ local_user }}"
+        groups: docker
+        append: yes
+      become: true
+      tags: qa
+
+    - name: Pull default Docker image
+      community.docker.docker_image:
+        name: "{{ container_image }}"
+        source: pull
+      tags: qa
+
+    - name: Create default containers
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        image: "{{ container_image }}"
+        command: "{{ container_command }}"
+        state: present
+      tags: qa

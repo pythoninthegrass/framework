@@ -1,0 +1,129 @@
+# code: language=ansible
+
+---
+- hosts: localhost
+  connection: local
+  become: false
+  gather_facts: true
+  # debugger: on_failed
+  any_errors_fatal: true
+  vars:
+    os_environment:
+      - key: EDITOR
+        value: vim
+  pre_tasks:
+    - name: Get running ansible user
+      ansible.builtin.set_fact:
+        local_user: "{{ lookup('env', 'USER') }}"
+        home_dir: "{{ lookup('env', 'HOME') }}"
+        work_dir: "{{ playbook_dir | dirname }}"
+        cacheable: true
+      tags: qa
+
+    - name: Top-level directory in project
+      ansible.builtin.shell: git rev-parse --show-toplevel
+      register: tld
+      tags: qa
+
+    - name: Set tld stdout fact
+      ansible.builtin.set_fact:
+        tld: "{{ tld.stdout }}"
+      tags: qa
+
+    - name: Get OS release
+      ansible.builtin.set_fact:
+        os_release: "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}"
+        major_ver: "{{ ansible_distribution_major_version }}"
+        distro: "{{ ansible_distribution }}"
+      tags: qa
+    - name: Install vim
+      ansible.builtin.package:
+        name:
+        - neovim
+        - vim
+        state: present
+      become: true
+      tags: qa
+  tasks:
+    - name: Install dependencies
+      ansible.builtin.dnf:
+        name:
+        - gcc-c++
+        - nodejs
+        - libstdc++-static
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Download asdf
+      ansible.builtin.git:
+        repo: https://github.com/asdf-vm/asdf.git
+        dest: "{{ home_dir }}/.asdf"
+        version: v0.11.3
+        force: true
+      become: false
+
+    - name: Add asdf plugins
+      ansible.builtin.shell: |
+        source {{ home_dir }}/.asdf/asdf.sh
+        asdf plugin-add {{ item }}
+      args:
+        executable: /bin/bash
+      with_items:
+        - nodejs
+        - rust https://github.com/code-lever/asdf-rust.git
+      become: false
+
+    - name: Install latest runtime
+      ansible.builtin.shell: |
+        source {{ home_dir }}/.asdf/asdf.sh
+        asdf install {{ item }} latest
+        asdf global {{ item }} latest
+      args:
+        executable: /bin/bash
+      with_items:
+        - nodejs
+        - rust
+      become: false
+
+    - name: npm global path
+      ansible.builtin.lineinfile:
+        dest: "{{ home_dir }}/.bashrc"
+        state: present
+        regexp: '^export NPM_GLOBAL='
+        firstmatch: true
+        line: 'export NPM_GLOBAL="$HOME/.npm-global/bin"'
+        insertafter: '^export N\_PREFIX\=.*$'
+        backup: true
+      become: false
+
+    - name: lvim dependencies
+      ansible.builtin.shell: |
+        cargo install --locked code-minimap
+        mkdir {{ home_dir }}/.npm-global
+        npm config set prefix {{ home_dir }}/.npm-global
+        npm install -g npm
+
+    # TODO: control for:
+    # ! "Verifying core plugins",
+    # !    "mismatch at [schemastore.nvim]: expected [ac100fa], got [ae41a33]",
+    # !    "[ERROR]: Unable to verify plugins, make sure to manually run ':Lazy sync' when starting lvim for the first time."
+    - name: Install lunar vim
+      ansible.builtin.shell: |
+        yes | bash <(curl -s https://raw.githubusercontent.com/lunarvim/lunarvim/master/utils/installer/install.sh)
+      become: false
+      # tags: qa
+
+    - name: Create config directory
+      ansible.builtin.file:
+        path: "{{ home_dir }}/.config/lvim"
+        state: directory
+        mode: '0755'
+      become: false
+
+    # TODO: clone gist
+    - name: Create config file
+      ansible.builtin.copy:
+        src: lvim/config.lua
+        dest: "{{ home_dir }}/.config/lvim/config.lua"
+        mode: '0644'
+      become: false

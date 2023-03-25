@@ -117,6 +117,7 @@
         - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{major_ver}}.noarch.rpm"
         - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{major_ver}}.noarch.rpm"
       become: true
+      when: ansible_os_family == "RedHat"
 
     - name: Accept GPG keys
       ansible.builtin.shell: |

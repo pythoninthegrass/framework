@@ -15,6 +15,7 @@ export DOTDROP_PROFILE="work"
 # PATH
 export ASDF_DIR="$HOME/.asdf"
 export N_PREFIX="$HOME/.n"
+export NPM_GLOBAL="$HOME/.npm-global/bin"
 export GEM_HOME="$HOME/gems"
 export KREW_ROOT="$HOME/.krew"
 export RUST_WITHOUT="rust-docs"
@@ -109,6 +110,7 @@ alias open-ports='sudo lsof -i | grep LISTEN'                                   
 alias show-blocked='sudo ipfw list'                                                                                         # All ipfw rules inc/ blocked IPs
 alias bat='bat --paging=never'                                                                                              # cat clone via go
 alias lzd='lazydocker'                                                                                                      # Docker TUI
+alias db='distrobox'
 
 # FUNCTIONS
 cd() { builtin cd "$@"; ll; }                                                                                               # Always list directory contents upon 'cd'

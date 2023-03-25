@@ -61,6 +61,8 @@
         - nemo-image-converter
         - nemo-preview
         - nemo-terminal
+        - pass
+        - python3.10
         - python3
         - python3-redis
         - python3-psutil
@@ -183,6 +185,7 @@
         - containerd.io
         - code
         - curl
+        - dnf-utils
         - dnf-plugins-core
         - gcc
         - gcc-c++

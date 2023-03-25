@@ -49,9 +49,20 @@
         - bats
         - ca-certificates
         - cloud-init
-        - fzf
+        - dbus-daemon
+        - dbus-tools
+        - dconf
+        - gh
         - git
         - inxi
+        - nemo
+        - nemo-dropbox
+        - nemo-fileroller
+        - nemo-image-converter
+        - nemo-preview
+        - nemo-terminal
+        - pass
+        - python3.10
         - python3
         - python3-redis
         - python3-psutil
@@ -59,6 +70,7 @@
         - vim
         state: present
       become: true
+      tags: qa
 
     # TODO: QA
     # - name: Enable redis
@@ -107,6 +119,7 @@
         - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{major_ver}}.noarch.rpm"
         - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{major_ver}}.noarch.rpm"
       become: true
+      when: ansible_os_family == "RedHat"
 
     - name: Accept GPG keys
       ansible.builtin.shell: |
@@ -172,6 +185,7 @@
         - containerd.io
         - code
         - curl
+        - dnf-utils
         - dnf-plugins-core
         - gcc
         - gcc-c++
@@ -179,12 +193,17 @@
         - gnome-tweaks
         - gnome-extensions-app
         - gstreamer1-plugin-openh264
+        - gtk4
+        - gtksourceview5
+        - gtk-update-icon-cache
         - kernel-devel
         - libsodium
         - make
+        - meson
+        - libadwaita-devel
+        - libpanel
         - mozilla-openh264
         - ncurses-devel
-        - nemo
         - openssl-devel
         - policycoreutils
         - policycoreutils-python-utils
@@ -250,7 +269,7 @@
         force: true
       become: false
 
-    - name: Install asdf plugins
+    - name: Add asdf plugins
       ansible.builtin.shell: |
         source {{ home_dir }}/.asdf/asdf.sh
         asdf plugin-add {{ item }}
@@ -269,6 +288,7 @@
         - nodejs
         - python
         - ruby
+        - rust https://github.com/code-lever/asdf-rust.git
         - terraform
       become: false
 
@@ -292,6 +312,7 @@
         - nodejs
         - python
         - ruby
+        - rust
         - terraform
       become: false
 

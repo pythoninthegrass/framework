@@ -17,7 +17,9 @@ RESET  := $(shell tput -Txterm sgr0)
 
 all: ansible sanity-check git help homebrew just install xcode
 
-# TODO: QA on macOS; Linux (Ubuntu, Arch)
+# TODO: QA on macOS; Linux (Debian/Ubuntu)
+# * cf. `distrobox create --name i-use-arch-btw --image archlinux:latest && distrobox enter i-use-arch-btw`
+# * || `distrobox create --name debby --image debian:stable && distrobox enter debby`
 
 sanity-check:  ## output environment variables
 	@echo "Checking environment..."
@@ -48,7 +50,7 @@ git: ## install git
 	elif [[ "${ID}" == "fedora" ]]; then \
 		sudo dnf install -y git; \
 	elif [[ "${ID}" == "arch" ]]; then \
-		sudo pacman -S git; \
+		yes | sudo pacman -S git; \
 	else \
 		echo "Unsupported OS"; \
 	fi
@@ -62,7 +64,7 @@ python: ## install python
 	elif [[ "${ID}" == "fedora" ]]; then \
 		sudo dnf install -y python3; \
 	elif [[ "${ID}" == "arch" ]]; then \
-		sudo pacman -S python; \
+		yes | sudo pacman -S python; \
 	else \
 		echo "Unsupported OS"; \
 	fi
@@ -76,7 +78,7 @@ pip: python ## install pip
 	elif [[ "${ID}" == "fedora" ]]; then \
 		sudo dnf install -y python3-pip; \
 	elif [[ "${ID}" == "arch" ]]; then \
-		sudo pacman -S python-pip; \
+		yes | sudo pacman -S python-pip; \
 	else \
 		echo "Unsupported OS"; \
 	fi
@@ -100,7 +102,7 @@ just: ## install justfile
 	elif [[ "${ID}" == "fedora" ]]; then \
 		sudo dnf install -y just; \
 	elif [[ "${ID}" == "arch" ]]; then \
-		sudo pacman -S just; \
+		yes | sudo pacman -S just; \
 	else \
 		echo "Unsupported OS"; \
 	fi

@@ -63,17 +63,20 @@
         - dconf
         - gh
         - git
-        - gnupg2
         - inxi
-        - pass
+        - nemo
+        - nemo-dropbox
+        - nemo-fileroller
+        - nemo-image-converter
+        - nemo-preview
+        - nemo-terminal
         - python3
-        - python3-psutil
         - python3-redis
+        - python3-psutil
         - tree
         - vim
         state: present
       become: true
-      tags: qa
 
     - name: Install redhat packages
       ansible.builtin.dnf:
@@ -94,7 +97,63 @@
         executable: /bin/bash
       become: true
       when: ansible_os_family == "RedHat"
+
+    - name: Set kernel retention
+      ansible.builtin.lineinfile:
+        dest: /etc/dnf/dnf.conf
+        state: present
+        regexp: '^installonly_limit'
+        firstmatch: true
+        line: 'installonly_limit=5'
+        insertafter: EOF
+      become: true
+      when: ansible_os_family == "RedHat"
       tags: qa
+
+    - name: Create nemo.desktop file
+      ansible.builtin.copy:
+        dest: "{{ home_dir }}/.local/share/applications/nemo.desktop"
+        content: |
+          [Desktop Entry]
+          Name=Nemo
+          Comment=File Manager
+          Exec=nemo
+          Icon=nemo
+          Terminal=false
+          Type=Application
+          Categories=GNOME;GTK;Utility;FileTools;
+          StartupNotify=true
+          MimeType=inode/directory;
+          Actions=NewWindow;
+          # OnlyShowIn=X-Cinnamon;
+
+          [Desktop Action NewWindow]
+          Name=Open a New Window
+          Exec=nemo --new-window
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Set nemo as default
+      ansible.builtin.shell: |
+        xdg-mime default nemo.desktop inode/directory
+      when: ansible_os_family == "RedHat"
+
+    - name: Backup nautilus icon
+      ansible.builtin.copy:
+        src: /usr/share/applications/org.gnome.Nautilus.desktop
+        dest: "{{ home_dir }}/.local/share/applications/org.gnome.Nautilus.desktop"
+        force: false
+      when: ansible_os_family == "RedHat"
+
+    - name: Disable nautilus icon
+      ansible.builtin.lineinfile:
+        path: "{{ home_dir }}/.local/share/applications/org.gnome.Nautilus.desktop"
+        state: present
+        regexp: '^NoDisplay='
+        line: 'NoDisplay=true'
+        insertafter: '[Desktop Entry]'
+        firstmatch: true
+      when: ansible_os_family == "RedHat"
 
     - name: Enable gnome remote desktop (org.gnome.desktop.remote-desktop.vnc)
       community.general.dconf:
@@ -205,6 +264,7 @@
         - fprintd
         - fprintd-pam
         state: present
+      # tags: qa
 
     - name: Check if fingerprint service is enabled
       ansible.builtin.lineinfile:
@@ -214,6 +274,7 @@
       check_mode: true
       register: check
       when: ansible_os_family == "RedHat"
+      # tags: qa
 
     - name: Define fingerprint service as wanted by multi-user.target
       become: true
@@ -224,6 +285,7 @@
           "WantedBy=multi-user.target"
         state: present
       when: ansible_os_family == "RedHat" and check.found == 1
+      # tags: qa
 
     - name: Start fprintd.service
       become: true
@@ -232,6 +294,7 @@
         state: started
         enabled: yes
       when: ansible_os_family == "RedHat"
+      # tags: qa
 
     - name: Print manual fingerprint instructions
       ansible.builtin.debug:
@@ -257,3 +320,4 @@
 
           If authselect looks good, upon reboot, your fingerprint will allow you login.
       when: ansible_os_family == "RedHat"
+      # tags: qa

@@ -52,6 +52,7 @@
         - fzf
         - git
         - inxi
+        - python3.10
         - python3
         - python3-redis
         - python3-psutil
@@ -60,6 +61,29 @@
         state: present
       become: true
   tasks:
+    - name: Enable rpmfusion repos
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: present
+        disable_gpg_check: yes
+      with_items:
+        - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{major_ver}}.noarch.rpm"
+        - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{major_ver}}.noarch.rpm"
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Install redhat dependencies
+      ansible.builtin.dnf:
+        name:
+        - dnf-utils
+        - dnf-plugins-core
+        - firewall-config
+        - NetworkManager-tui
+        update_cache: yes
+        state: present
+      become: true
+      when: ansible_os_family == "RedHat"
+
     - name: Add extra repos
       ansible.builtin.shell: |
         dnf config-manager --add-repo https://download.docker.com/linux/{{ distro | lower }}/docker-ce.repo
@@ -68,9 +92,10 @@
       become: true
       when: ansible_os_family == "RedHat"
 
-    - name: Install redhat packages
+    - name: Install docker
       ansible.builtin.dnf:
         name:
+        - containerd.io
         - docker-ce
         - docker-ce-cli
         - docker-compose-plugin
@@ -90,14 +115,6 @@
       become: true
       when: ansible_os_family == "RedHat"
 
-    - name: Whitelist docker network
-      ansible.posix.firewalld:
-        zone: trusted
-        interface: docker0
-        permanent: yes
-        state: enabled
-      become: true
-
     - name: grubby
       become: true
       ansible.builtin.shell: |
@@ -111,14 +128,19 @@
         name: docker
         state: present
 
-    # TODO: may need reboot
     - name: Enable docker service
       ansible.builtin.service:
         name: docker
         enabled: true
         state: started
       become: true
-      tags: qa
+
+    - name: Enable containerd service
+      ansible.builtin.service:
+        name: containerd
+        enabled: true
+        state: started
+      become: true
 
     - name: Add user to docker group
       ansible.builtin.user:
@@ -126,13 +148,11 @@
         groups: docker
         append: yes
       become: true
-      tags: qa
 
     - name: Pull default Docker image
       community.docker.docker_image:
         name: "{{ container_image }}"
         source: pull
-      tags: qa
 
     - name: Create default containers
       community.docker.docker_container:
@@ -140,4 +160,32 @@
         image: "{{ container_image }}"
         command: "{{ container_command }}"
         state: present
+
+    - name: Install distrobox
+      ansible.builtin.dnf:
+        name:
+        - distrobox
+        update_cache: yes
+        state: present
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Create distrobox config directory
+      ansible.builtin.file:
+        path: "{{ home_dir }}/.config/distrobox"
+        state: directory
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: 0755
+      become: false
+      tags: qa
+
+    - name: distrobox config
+      ansible.builtin.copy:
+        src: "{{ tld }}/config/.distroboxrc"
+        dest: "{{ home_dir }}/.config/distrobox/distrobox.conf"
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: 0644
+      become: false
       tags: qa

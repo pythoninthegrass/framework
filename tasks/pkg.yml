@@ -49,9 +49,18 @@
         - bats
         - ca-certificates
         - cloud-init
-        - fzf
+        - dbus-daemon
+        - dbus-tools
+        - dconf
+        - gh
         - git
         - inxi
+        - nemo
+        - nemo-dropbox
+        - nemo-fileroller
+        - nemo-image-converter
+        - nemo-preview
+        - nemo-terminal
         - python3
         - python3-redis
         - python3-psutil
@@ -59,6 +68,7 @@
         - vim
         state: present
       become: true
+      tags: qa
 
     # TODO: QA
     # - name: Enable redis
@@ -179,12 +189,17 @@
         - gnome-tweaks
         - gnome-extensions-app
         - gstreamer1-plugin-openh264
+        - gtk4
+        - gtksourceview5
+        - gtk-update-icon-cache
         - kernel-devel
         - libsodium
         - make
+        - meson
+        - libadwaita-devel
+        - libpanel
         - mozilla-openh264
         - ncurses-devel
-        - nemo
         - openssl-devel
         - policycoreutils
         - policycoreutils-python-utils
@@ -250,7 +265,7 @@
         force: true
       become: false
 
-    - name: Install asdf plugins
+    - name: Add asdf plugins
       ansible.builtin.shell: |
         source {{ home_dir }}/.asdf/asdf.sh
         asdf plugin-add {{ item }}
@@ -269,6 +284,7 @@
         - nodejs
         - python
         - ruby
+        - rust https://github.com/code-lever/asdf-rust.git
         - terraform
       become: false
 
@@ -292,6 +308,7 @@
         - nodejs
         - python
         - ruby
+        - rust
         - terraform
       become: false
 

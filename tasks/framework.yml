@@ -81,7 +81,10 @@
     - name: Install redhat packages
       ansible.builtin.dnf:
         name:
+        - dnf-utils
         - dnf-plugins-core
+        - firewall-config
+        - NetworkManager-tui
         - python3-dnf-plugins-extras-versionlock
         update_cache: yes
         state: present

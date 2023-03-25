@@ -48,9 +48,9 @@
       ansible.builtin.group:
         name: "{{ item }}"
         state: present
+      become: true
       with_items:
         - ansible
-      become: true
 
     - name: Create user
       ansible.builtin.user:
@@ -59,9 +59,9 @@
         state: present
         shell: /bin/bash
         create_home: false
+      become: true
       with_items:
         - ansible
-      become: true
 
     - name: Generate ssh key for user
       ansible.builtin.openssh_keypair:
@@ -99,8 +99,8 @@
         firstmatch: true
         line: '# %wheel  ALL=(ALL)       ALL'
         validate: /usr/sbin/visudo -cf %s
-      when: ansible_os_family == "RedHat"
       become: true
+      when: ansible_os_family == "RedHat"
 
     - name: Enable wheel nopasswd
       ansible.builtin.lineinfile:
@@ -110,5 +110,5 @@
         firstmatch: true
         line: '%wheel  ALL=(ALL)      NOPASSWD:ALL'
         validate: /usr/sbin/visudo -cf %s
-      when: ansible_os_family == "RedHat"
       become: true
+      when: ansible_os_family == "RedHat"

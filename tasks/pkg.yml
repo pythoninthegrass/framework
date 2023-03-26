@@ -56,7 +56,6 @@
         - git
         - inxi
         - nemo
-        - nemo-dropbox
         - nemo-fileroller
         - nemo-image-converter
         - nemo-preview
@@ -70,7 +69,6 @@
         - vim
         state: present
       become: true
-      tags: qa
 
     # TODO: QA
     # - name: Enable redis
@@ -185,11 +183,14 @@
         - containerd.io
         - code
         - curl
+        - dmz-cursor-themes
         - dnf-utils
         - dnf-plugins-core
         - gcc
         - gcc-c++
         - git
+        - gnome-extensions-app
+        - gnome-shell-extension-appindicator
         - gnome-tweaks
         - gnome-extensions-app
         - gstreamer1-plugin-openh264
@@ -200,6 +201,11 @@
         - libsodium
         - make
         - meson
+        - nemo
+        - nemo-fileroller
+        - nemo-image-converter
+        - nemo-preview
+        - nemo-terminal
         - libadwaita-devel
         - libpanel
         - mozilla-openh264
@@ -224,6 +230,35 @@
       become: true
       when: ansible_os_family == "RedHat"
 
+    - name: Install multimedia
+      ansible.builtin.shell: |
+        dnf groupinstall -y "Multimedia"
+      args:
+        executable: /bin/bash
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    # TODO: download packs from https://extensions.gnome.org/extension/1160/dash-to-panel/
+    - name: Install gnome extensions
+      ansible.builtin.shell: |
+        gnome-extensions install {{ item }} # --quiet
+      args:
+        executable: /bin/bash
+      with_items:
+        - dash-to-panel@jderose9.github.com
+        - caffeine@patapon.info
+        - clipboard-indicator@tudmotu.com
+        - apps-menu@gnome-shell-extensions.gcampax.github.com
+        - background-logo@fedorahosted.org
+        - launch-new-instance@gnome-shell-extensions.gcampax.github.com
+        - places-menu@gnome-shell-extensions.gcampax.github.com
+        - window-list@gnome-shell-extensions.gcampax.github.com
+        - appindicatorsupport@rgcjonas.gmail.com
+        - trayIconsReloaded@selfmade.pl
+      become: true
+      when: ansible_os_family == "RedHat"
+      tags: qa
+
     - name: Install pip packages
       ansible.builtin.pip:
         name:
@@ -231,12 +266,75 @@
         - tldr
       become: false
 
-    - name: Install multimedia
+    - name: Install flatpaks
       ansible.builtin.shell: |
-        dnf groupinstall -y "Multimedia"
+        flatpak install -y {{ item }}
       args:
         executable: /bin/bash
+      with_items:
+        - com.axosoft.GitKraken
+        - com.discordapp.Discord
+        - flathub io.typora.Typora
+        - flathub com.slack.Slack
+        - flathub com.spotify.Client
       become: true
+
+    # TODO: `travis995.0f91801` is hardcoded; possibly use gh cli/api instead
+    - name: Download appimagelauncher
+      ansible.builtin.shell: |
+        LATEST_RELEASE=$(curl -L -s -H 'Accept: application/json' https://github.com/TheAssassin/AppImageLauncher/releases/latest | jq -r '.tag_name')
+        URL="https://github.com/TheAssassin/AppImageLauncher/releases/download/${LATEST_RELEASE}"
+        USER_AGENT="User-Agent: Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:94.0) Gecko/20100101 Firefox/94.0"
+        LATEST_RELEASE="${LATEST_RELEASE:1}"
+        PKG_NAME="appimagelauncher-${LATEST_RELEASE}-travis995.0f91801.x86_64.rpm"
+        if [ ! -f "/tmp/${PKG_NAME}" ]; then
+          cd /tmp && curl -LJO -H "${USER_AGENT}" "${URL}/${PKG_NAME}"; cd -
+        fi
+      args:
+        executable: /bin/bash
+      become: false
+      when: ansible_os_family == "RedHat"
+
+    - name: Install appimagelauncher
+      ansible.builtin.shell: |
+        dnf install -y /tmp/appimagelauncher-*.rpm
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: ~/Applications directory
+      ansible.builtin.file:
+        path: "{{ home_dir }}/Applications"
+        state: directory
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: '0755'
+        recurse: false
+      become: false
+
+    - name: Download upnote appimage
+      ansible.builtin.shell: |
+        USER_AGENT="User-Agent: Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:94.0) Gecko/20100101 Firefox/94.0"
+        PKG_NAME="UpNote.AppImage"
+        URL="https://upnote-release.s3.us-west-2.amazonaws.com/${PKG_NAME}"
+        if [ ! -f "/tmp/${PKG_NAME}" ]; then
+          cd /tmp && curl -LJO -H "${USER_AGENT}" "${URL}"; cd -
+        fi
+      args:
+        executable: /bin/bash
+      become: false
+      when: ansible_os_family == "RedHat"
+
+    - name: Download landrop appimage
+      ansible.builtin.shell: |
+        USER_AGENT="User-Agent: Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:94.0) Gecko/20100101 Firefox/94.0"
+        PKG_NAME="LANDrop-latest-linux.AppImage"
+        URL="https://releases.landrop.app/${PKG_NAME}"
+        if [ ! -f "/tmp/${PKG_NAME}" ]; then
+          cd /tmp && curl -LJO -H "${USER_AGENT}" "${URL}"; cd -
+        fi
+      args:
+        executable: /bin/bash
+      become: false
       when: ansible_os_family == "RedHat"
 
     - name: Get starship install script
@@ -331,9 +429,40 @@
         executable: /bin/bash
       when: ansible_os_family == "RedHat"
 
+    # - name: Install nautilus-dropbox
+    #   ansible.builtin.shell: |
+    #     dnf install -y https://linux.dropbox.com/packages/fedora/nautilus-dropbox-2022.12.05-1.fedora.x86_64.rpm
+    #   args:
+    #     executable: /bin/bash
+    #   become: true
+    #   when: ansible_os_family == "RedHat"
+
+    - name: Install nemo-dropbox
+      ansible.builtin.dnf:
+        name: nemo-dropbox
+        state: present
+      become: true
+
+    - name: Create dropbox service override directory
+      ansible.builtin.file:
+        path: "{{ home_dir }}/.config/systemd/user/dropbox.service.d/"
+        state: directory
+
+    - name: Create dropbox service override file
+      ansible.builtin.lineinfile:
+        path: "{{ home_dir }}/.config/systemd/user/dropbox.service.d/override.conf"
+        line: |
+          [Service]
+          ExecStart=/usr/bin/dropbox start -i
+          Environment=DISPLAY=:0
+        insertafter: EOF
+        state: present
+        create: yes
+
     - name: Update Packages
       ansible.builtin.dnf:
         name: "*"
         update_cache: yes
         state: "latest"
       when: ansible_os_family == "RedHat"
+      become: true

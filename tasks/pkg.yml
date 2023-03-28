@@ -189,7 +189,6 @@
         - gcc
         - gcc-c++
         - git
-        - gnome-extensions-app
         - gnome-shell-extension-appindicator
         - gnome-tweaks
         - gnome-extensions-app
@@ -238,10 +237,31 @@
       become: true
       when: ansible_os_family == "RedHat"
 
-    # TODO: download packs from https://extensions.gnome.org/extension/1160/dash-to-panel/
+    - name: Download gnome-shell-extension-installer (git)
+      ansible.builtin.git:
+        repo: https://github.com/brunelli/gnome-shell-extension-installer.git
+        dest: /tmp/gnome-shell-extension-installer
+        version: master
+
+    - name: Install gnome-shell-extension-installer
+      ansible.builtin.shell: |
+        cd /tmp/gnome-shell-extension-installer
+        chmod +x gnome-shell-extension-installer
+        mv gnome-shell-extension-installer /usr/bin/
+      args:
+        executable: /bin/bash
+      become: true
+      when: ansible_os_family == "RedHat"
+
     - name: Install gnome extensions
       ansible.builtin.shell: |
-        gnome-extensions install {{ item }} # --quiet
+        results=$(echo q | gnome-shell-extension-installer --search "{{ item }}" | awk '/"uuid"/ {print $0}')
+
+        # match first package (pk)
+        pk=$(echo $results | grep -o '"pk":\s[0-9]*' | awk '{print $2}')
+
+        # install extension
+        gnome-shell-extension-installer --yes $pk
       args:
         executable: /bin/bash
       with_items:
@@ -257,7 +277,6 @@
         - trayIconsReloaded@selfmade.pl
       become: true
       when: ansible_os_family == "RedHat"
-      tags: qa
 
     - name: Install pip packages
       ansible.builtin.pip:

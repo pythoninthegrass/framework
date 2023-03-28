@@ -253,6 +253,7 @@
       become: true
       when: ansible_os_family == "RedHat"
 
+    # gnome-extensions list | sort -u
     - name: Install gnome extensions
       ansible.builtin.shell: |
         results=$(echo q | gnome-shell-extension-installer --search "{{ item }}" | awk '/"uuid"/ {print $0}')
@@ -265,18 +266,22 @@
       args:
         executable: /bin/bash
       with_items:
-        - dash-to-panel@jderose9.github.com
+        - appindicatorsupport@rgcjonas.gmail.com
+        - apps-menu@gnome-shell-extensions.gcampax.github.com
+        - arcmenu@arcmenu.com
+        - background-logo@fedorahosted.org
         - caffeine@patapon.info
         - clipboard-indicator@tudmotu.com
-        - apps-menu@gnome-shell-extensions.gcampax.github.com
-        - background-logo@fedorahosted.org
+        - dash-to-panel@jderose9.github.com
         - launch-new-instance@gnome-shell-extensions.gcampax.github.com
+        - multi-monitors-add-on@spin83
         - places-menu@gnome-shell-extensions.gcampax.github.com
-        - window-list@gnome-shell-extensions.gcampax.github.com
-        - appindicatorsupport@rgcjonas.gmail.com
+        - quick-settings-tweaks@qwreey
         - trayIconsReloaded@selfmade.pl
+        - window-list@gnome-shell-extensions.gcampax.github.com
       become: true
       when: ansible_os_family == "RedHat"
+      tags: qa
 
     - name: Install flatpaks
       ansible.builtin.shell: |
@@ -284,11 +289,12 @@
       args:
         executable: /bin/bash
       with_items:
-        - com.axosoft.GitKraken
-        - com.discordapp.Discord
-        - flathub io.typora.Typora
+        - flathub com.axosoft.GitKraken
+        - flathub com.discordapp.Discord
         - flathub com.slack.Slack
         - flathub com.spotify.Client
+        - flathub com.valvesoftware.Steam
+        - flathub io.typora.Typora
       become: true
 
     # TODO: `travis995.0f91801` is hardcoded; possibly use gh cli/api instead

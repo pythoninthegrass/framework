@@ -278,13 +278,6 @@
       become: true
       when: ansible_os_family == "RedHat"
 
-    - name: Install pip packages
-      ansible.builtin.pip:
-        name:
-        - pipx
-        - tldr
-      become: false
-
     - name: Install flatpaks
       ansible.builtin.shell: |
         flatpak install -y {{ item }}
@@ -403,6 +396,7 @@
         - kustomize
         - lazydocker https://github.com/comdotlinux/asdf-lazydocker.git
         - nodejs
+        - poetry https://github.com/asdf-community/asdf-poetry.git
         - python
         - ruby
         - rust https://github.com/code-lever/asdf-rust.git
@@ -427,10 +421,27 @@
         - kustomize
         - lazydocker
         - nodejs
+        - poetry
         - python
         - ruby
         - rust
         - terraform
+      become: false
+
+    - name: Set poetry options
+      ansible.builtin.shell: |
+        poetry config virtualenvs.prefer-active-python true
+        poetry config virtualenvs.in-project true
+        poetry config virtualenvs.create true
+      args:
+        executable: /bin/bash
+      become: false
+
+    - name: Install pip packages
+      ansible.builtin.pip:
+        name:
+        - pipx
+        - tldr
       become: false
 
     - name: Install k8s dependencies
@@ -483,5 +494,5 @@
         name: "*"
         update_cache: yes
         state: "latest"
-      when: ansible_os_family == "RedHat"
       become: true
+      when: ansible_os_family == "RedHat"

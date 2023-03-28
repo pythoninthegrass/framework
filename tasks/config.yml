@@ -17,20 +17,24 @@
           home_dir: "{{ lookup('env', 'HOME') }}"
           work_dir: "{{ playbook_dir | dirname }}"
           cacheable: true
+        tags: qa
 
       - name: Top-level directory in project
         ansible.builtin.shell: git rev-parse --show-toplevel
         register: tld
+        tags: qa
 
       - name: Set tld stdout fact
         ansible.builtin.set_fact:
           tld: "{{ tld.stdout }}"
+        tags: qa
 
       - name: Get OS release
         ansible.builtin.set_fact:
           os_release: "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}"
           major_ver: "{{ ansible_distribution_major_version }}"
           distro: "{{ ansible_distribution }}"
+        tags: qa
   tasks:
     - name: .bashrc
       ansible.builtin.copy:
@@ -41,6 +45,7 @@
         mode: 0644
         backup: yes
         force: yes
+      become: false
       when: ansible_os_family == "RedHat"
 
     - name: .bash_profile
@@ -49,6 +54,7 @@
         regexp: '^\# \.bash_profile\n\n\# Get.*\nif.*\n\t\.\s.*\nfi\n\n\# User.*'
         replace: |
           [[ -s ~/.bashrc ]] && source ~/.bashrc
+      become: false
       when: ansible_os_family == "RedHat"
 
     - name: Create ~/.cargo directory
@@ -58,6 +64,7 @@
         owner: "{{ local_user }}"
         group: "{{ local_user }}"
         mode: 0755
+      become: false
 
     - name: cargo env
       ansible.builtin.copy:
@@ -67,12 +74,14 @@
         group: "{{ local_user }}"
         mode: 0644
         force: yes
+      become: false
 
     - name: requirements.txt
       ansible.builtin.pip:
         requirements: "{{ tld }}/config/requirements.txt"
         state: present
         extra_args: --user
+      become: false
 
     - name: startup.py
       ansible.builtin.copy:
@@ -82,6 +91,7 @@
         group: "{{ local_user }}"
         mode: 0644
         force: yes
+      become: false
 
     - name: fzf completion
       ansible.builtin.copy:
@@ -91,6 +101,7 @@
         group: "{{ local_user }}"
         mode: 0644
         force: yes
+      become: false
 
     - name: Download shell-color-scripts
       ansible.builtin.git:
@@ -100,6 +111,7 @@
         force: yes
         update: yes
         accept_hostkey: yes
+      become: false
 
     - name: Install shell-color-scripts
       ansible.builtin.shell:

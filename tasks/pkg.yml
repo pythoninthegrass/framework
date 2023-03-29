@@ -167,11 +167,13 @@
       ansible.builtin.shell: |
         dnf config-manager --add-repo https://download.docker.com/linux/{{ distro | lower }}/docker-ce.repo
         dnf config-manager --add-repo https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+        dnf config-manager --add-repo https://pkgs.tailscale.com/stable/fedora/tailscale.repo
         dnf config-manager --set-enabled fedora-cisco-openh264
       args:
         executable: /bin/bash
       become: true
       when: ansible_os_family == "RedHat"
+      # tags: qa
 
     - name: Install redhat packages
       ansible.builtin.dnf:
@@ -223,11 +225,13 @@
         - qt5-qtbase-devel
         - rpm-build
         - rpmdevtools
+        - tailscale
         - vim-enhanced
         update_cache: yes
         state: present
       become: true
       when: ansible_os_family == "RedHat"
+      # tags: qa
 
     - name: Install multimedia
       ansible.builtin.shell: |
@@ -236,6 +240,13 @@
         executable: /bin/bash
       become: true
       when: ansible_os_family == "RedHat"
+
+    - name: Start tailscale
+      ansible.builtin.service:
+        name: tailscaled
+        state: started
+        enabled: yes
+      become: true
 
     - name: Download gnome-shell-extension-installer (git)
       ansible.builtin.git:
@@ -281,7 +292,7 @@
         - window-list@gnome-shell-extensions.gcampax.github.com
       become: true
       when: ansible_os_family == "RedHat"
-      tags: qa
+      # tags: qa
 
     - name: Install flatpaks
       ansible.builtin.shell: |
@@ -291,11 +302,13 @@
       with_items:
         - flathub com.axosoft.GitKraken
         - flathub com.discordapp.Discord
+        - flathub org.gnome.Geary
         - flathub com.slack.Slack
         - flathub com.spotify.Client
         - flathub com.valvesoftware.Steam
         - flathub io.typora.Typora
       become: true
+      tags: qa
 
     # TODO: `travis995.0f91801` is hardcoded; possibly use gh cli/api instead
     - name: Download appimagelauncher

@@ -57,6 +57,18 @@
       become: false
       when: ansible_os_family == "RedHat"
 
+    # https://unix.stackexchange.com/a/513413
+    - name: fix networkmanager.conf hostname
+      ansible.builtin.lineinfile:
+        path: /etc/NetworkManager/NetworkManager.conf
+        state: present
+        regexp: '^\[main\]\n#plugins=.*\n'
+        firstmatch: true
+        line: 'hostname-mode=none'
+        insertafter: '^#plugins=.*$'
+      become: true
+      when: ansible_os_family == "RedHat"
+
     - name: Create ~/.cargo directory
       ansible.builtin.file:
         path: "{{ home_dir }}/.cargo"

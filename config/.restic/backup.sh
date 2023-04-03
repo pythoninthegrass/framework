@@ -26,7 +26,7 @@ stop_containers() {
 
 # run backup
 restic_backup() {
-	restic backup --force --verbose --one-file-system --tag systemd.timer $BACKUP_EXCLUDES $BACKUP_PATHS
+	restic backup --force --verbose --one-file-system --tag systemd.timer --exclude-file $BACKUP_EXCLUDES $BACKUP_PATHS
 }
 
 # maintenance

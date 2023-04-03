@@ -1,3 +1,13 @@
+# ETC
+**/.asdf/*
+**/.cache/
+**/.config/Code/
+**/.dropbox-dist/
+**/.var/app/
+**/.vscode*
+**/Dropbox/
+
+# Generated
 **/facts/
 *.retry
 *.bak

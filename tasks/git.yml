@@ -5,19 +5,34 @@
   connection: local
   become: true
   gather_facts: true
-  debugger: on_failed
+  # debugger: on_failed
   any_errors_fatal: true
+  collections:
+    - community.general
   vars:
     os_environment:
       - key: EDITOR
         value: vim
+    git_user:
+      - key: user.name
+        value: pythoninthegrass
+      - key: user.email
+        value: 4097471+pythoninthegrass@users.noreply.github.com
   pre_tasks:
     - name: Get running ansible user
       ansible.builtin.set_fact:
         local_user: "{{ lookup('env', 'USER') }}"
         home_dir: "{{ lookup('env', 'HOME') }}"
+        work_dir: "{{ playbook_dir | dirname }}"
         cacheable: true
       delegate_to: localhost
+      tags: qa
+
+    - name: Register ~/.gitconfig user.name and user.email
+      ansible.builtin.shell: |
+        git config --global user.name "{{ git_user.0.value }}"
+        git config --global user.email "{{ git_user.1.value }}"
+      become: false
 
     - name: Cross-platform dependencies
       become_user: root
@@ -27,6 +42,13 @@
         - git
         state: present
   tasks:
+    - name: Add a setting to ~/.gitconfig
+      community.general.git_config:
+        name: alias.amend
+        scope: global
+        value: commit --amend --no-edit
+      become: false
+
     - name: Setup directory for git repos
       ansible.builtin.file:
         path: "{{ home_dir }}/git"

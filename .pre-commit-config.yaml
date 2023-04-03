@@ -1,5 +1,9 @@
 repos:
-- repo: https://github.com/ansible/ansible-lint
-  rev: v6.14.0a0
-  hooks:
-    - id: ansible-lint
+  - repo: https://github.com/ansible/ansible-lint
+    rev: v6.14.0a0
+    hooks:
+      - id: ansible-lint
+  - repo: https://github.com/zricethezav/gitleaks
+    rev: v8.15.3
+    hooks:
+      - id: gitleaks

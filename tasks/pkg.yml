@@ -62,6 +62,7 @@
         - nemo-preview
         - nemo-terminal
         - pass
+        - pre-commit
         - python3.10
         - python3
         - python3-redis
@@ -71,7 +72,7 @@
         - vim
         state: present
       become: true
-      # tags: qa
+      tags: qa
 
     # TODO: QA
     # - name: Enable redis
@@ -550,4 +551,4 @@
         state: "latest"
       become: true
       when: ansible_os_family == "RedHat"
-      tags: qa
+      # tags: qa

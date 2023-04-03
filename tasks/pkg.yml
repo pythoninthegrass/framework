@@ -55,6 +55,7 @@
         - gh
         - git
         - inxi
+        - neofetch
         - nemo
         - nemo-fileroller
         - nemo-image-converter
@@ -65,10 +66,12 @@
         - python3
         - python3-redis
         - python3-psutil
+        - restic
         - tree
         - vim
         state: present
       become: true
+      # tags: qa
 
     # TODO: QA
     # - name: Enable redis
@@ -107,6 +110,39 @@
         state: present
       become: true
       when: ansible_os_family == "Debian"
+
+    # https://www.reddit.com/r/Fedora/comments/x7ym7l/new_to_fedora_how_to_speed_up_dnf/
+    - name: Enable dnf-makecache.timer
+      ansible.builtin.service:
+        name: dnf-makecache.timer
+        enabled: true
+        state: started
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: dnf.conf sane defaults
+      ansible.builtin.lineinfile:
+        path: /etc/dnf/dnf.conf
+        state: present
+        firstmatch: true
+        line: "{{ item }}"
+        regexp: "{{ item }}"
+        insertafter: EOF
+      with_items:
+        - 'timeout=10'
+        - 'minrate=50000'
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: dnf-makecache.conf
+      ansible.builtin.copy:
+        src: "{{ tld }}/config/dnf-makecache.conf"
+        dest: /etc/dnf/aliases.d/dnf-makecache.conf
+        owner: root
+        group: root
+        mode: 0644
+      become: true
+      when: ansible_os_family == "RedHat"
 
     - name: Enable rpmfusion repos
       ansible.builtin.dnf:
@@ -231,7 +267,6 @@
         state: present
       become: true
       when: ansible_os_family == "RedHat"
-      # tags: qa
 
     - name: Install multimedia
       ansible.builtin.shell: |
@@ -308,7 +343,7 @@
         - flathub com.valvesoftware.Steam
         - flathub io.typora.Typora
       become: true
-      tags: qa
+      # tags: qa
 
     # TODO: `travis995.0f91801` is hardcoded; possibly use gh cli/api instead
     - name: Download appimagelauncher
@@ -515,3 +550,4 @@
         state: "latest"
       become: true
       when: ansible_os_family == "RedHat"
+      tags: qa

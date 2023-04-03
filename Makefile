@@ -49,7 +49,7 @@ RESET  := $(shell tput -Txterm sgr0)
 
 # targets
 .PHONY: all
-all: ansible sanity-check git help homebrew just install xcode
+all: ansible ansible-galaxy sanity-check git help homebrew just install xcode
 
 # TODO: QA Linux (Debian/Ubuntu)
 # * cf. `distrobox create --name i-use-arch-btw --image archlinux:latest && distrobox enter i-use-arch-btw`
@@ -124,6 +124,10 @@ ansible: pip ## install ansible
 		sudo chmod 666 /var/log/ansible.log; \
 	fi
 
+ansible-galaxy: ansible ## install ansible galaxy roles
+	@echo "Installing Ansible Galaxy roles..."
+	ansible-galaxy install -r requirements.yml
+
 just: ## install justfile
 	@echo "Installing Justfile..."
 	if [ "${UNAME}" == "Darwin" ]; then \
@@ -136,7 +140,7 @@ just: ## install justfile
 		yes | sudo pacman -S just; \
 	fi
 
-install: sanity-check xcode homebrew git python pip ansible just  ## install all dependencies
+install: sanity-check xcode homebrew git python pip ansible ansible-galaxy just  ## install all dependencies
 
 help: ## Show this help.
 	@echo ''

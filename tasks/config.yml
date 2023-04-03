@@ -131,3 +131,40 @@
         chdir: "{{ home_dir }}/git/shell-color-scripts"
         executable: /bin/bash
       become: true
+
+    - name: Copy .restic to home directory
+      ansible.builtin.copy:
+        src: "{{ tld }}/config/.restic"
+        dest: "{{ home_dir }}"
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: 0644
+        force: yes
+      become: false
+
+    - name: Copy restic-backup.service
+      ansible.builtin.copy:
+        src: "{{ tld }}/config/.restic/restic-backup.service"
+        dest: "{{ home_dir }}/.config/systemd/user"
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: 0644
+        force: yes
+      become: false
+
+    - name: Copy restic-backup.timer
+      ansible.builtin.copy:
+        src: "{{ tld }}/config/.restic/restic-backup.timer"
+        dest: "{{ home_dir }}/.config/systemd/user"
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: 0644
+        force: yes
+      become: false
+
+    - name: Enable restic backup timer
+      ansible.builtin.systemd:
+        state: started
+        scope: user
+        name: restic-backup.timer
+      become: false

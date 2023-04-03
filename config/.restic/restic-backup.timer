@@ -1,0 +1,9 @@
+# https://unix.stackexchange.com/questions/698200/run-a-program-via-systemd-service-ponting-to-shell-script
+[Unit]
+Description=Restic backup schedule
+[Timer]
+# every 2 hours
+OnCalendar=*-*-* 00,02,04,06,08,10,12,14,16,18,20,22:00:00
+Persistent=true
+[Install]
+WantedBy=timers.target

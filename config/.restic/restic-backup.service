@@ -1,0 +1,8 @@
+# https://fedoramagazine.org/automate-backups-with-restic-and-systemd/
+[Unit]
+Description=Restic backup service
+[Service]
+Type=oneshot
+ExecStart=%h/.restic/backup_healthchecks.sh
+ExecStartPost=
+EnvironmentFile=%h/.restic/.env

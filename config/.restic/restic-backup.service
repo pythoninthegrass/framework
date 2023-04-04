@@ -2,7 +2,8 @@
 [Unit]
 Description=Restic backup service
 [Service]
-Type=oneshot
+Type=simple
+Restart=on-failure
+RestartSec=30
 ExecStart=%h/.restic/backup_healthchecks.sh
-ExecStartPost=
 EnvironmentFile=%h/.restic/.env

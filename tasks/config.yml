@@ -141,6 +141,7 @@
         mode: 0644
         force: yes
       become: false
+      # tags: qa
 
     - name: Copy restic-backup.service
       ansible.builtin.copy:
@@ -163,8 +164,31 @@
       become: false
 
     - name: Enable restic backup timer
-      ansible.builtin.systemd:
-        state: started
-        scope: user
-        name: restic-backup.timer
+      ansible.builtin.shell: |
+        systemctl --user enable --now restic-backup.timer
+      become: false
+
+    - name: Copy restic-prune.service
+      ansible.builtin.copy:
+        src: "{{ tld }}/config/.restic/restic-prune.service"
+        dest: "{{ home_dir }}/.config/systemd/user"
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: 0644
+        force: yes
+      become: false
+
+    - name: Copy restic-prune.timer
+      ansible.builtin.copy:
+        src: "{{ tld }}/config/.restic/restic-prune.timer"
+        dest: "{{ home_dir }}/.config/systemd/user"
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: 0644
+        force: yes
+      become: false
+
+    - name: Enable restic prune timer
+      ansible.builtin.shell: |
+        systemctl --user enable --now restic-prune.timer
       become: false

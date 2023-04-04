@@ -101,7 +101,6 @@
         dest: "{{ home_dir }}/.config/startup.py"
         owner: "{{ local_user }}"
         group: "{{ local_user }}"
-        mode: 0644
         force: yes
       become: false
 
@@ -138,10 +137,8 @@
         dest: "{{ home_dir }}"
         owner: "{{ local_user }}"
         group: "{{ local_user }}"
-        mode: 0644
         force: yes
       become: false
-      # tags: qa
 
     - name: Copy restic-backup.service
       ansible.builtin.copy:
@@ -149,7 +146,6 @@
         dest: "{{ home_dir }}/.config/systemd/user"
         owner: "{{ local_user }}"
         group: "{{ local_user }}"
-        mode: 0644
         force: yes
       become: false
 
@@ -159,7 +155,6 @@
         dest: "{{ home_dir }}/.config/systemd/user"
         owner: "{{ local_user }}"
         group: "{{ local_user }}"
-        mode: 0644
         force: yes
       become: false
 
@@ -174,7 +169,6 @@
         dest: "{{ home_dir }}/.config/systemd/user"
         owner: "{{ local_user }}"
         group: "{{ local_user }}"
-        mode: 0644
         force: yes
       become: false
 
@@ -184,7 +178,6 @@
         dest: "{{ home_dir }}/.config/systemd/user"
         owner: "{{ local_user }}"
         group: "{{ local_user }}"
-        mode: 0644
         force: yes
       become: false
 

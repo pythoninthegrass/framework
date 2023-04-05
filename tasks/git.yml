@@ -49,6 +49,13 @@
         value: commit --amend --no-edit
       become: false
 
+    - name: Add a setting to ~/.gitconfig
+      community.general.git_config:
+        name: push.autoSetupRemote
+        scope: global
+        value: true
+      become: false
+
     - name: Setup directory for git repos
       ansible.builtin.file:
         path: "{{ home_dir }}/git"

@@ -227,6 +227,7 @@
         - dnf-utils
         - dnf-plugin-system-upgrade
         - dnf-plugins-core
+        - firewall-config
         - gcc
         - gcc-c++
         - git
@@ -246,6 +247,7 @@
         - nemo-image-converter
         - nemo-preview
         - nemo-terminal
+        - NetworkManager-tui
         - libadwaita-devel
         - libpanel
         - mozilla-openh264

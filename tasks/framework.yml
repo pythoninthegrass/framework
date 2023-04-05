@@ -111,6 +111,12 @@
         insertafter: EOF
       become: true
       when: ansible_os_family == "RedHat"
+
+    - name: Disable grub auto-hide
+      ansible.builtin.shell: |
+        grub2-editenv - unset menu_auto_hide
+      become: true
+      when: ansible_os_family == "RedHat"
       tags: qa
 
     - name: Create nemo.desktop file

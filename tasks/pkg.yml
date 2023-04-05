@@ -320,6 +320,7 @@
       args:
         executable: /bin/bash
       with_items:
+        - allowlockedremotedesktop@kamens.us
         - appindicatorsupport@rgcjonas.gmail.com
         - apps-menu@gnome-shell-extensions.gcampax.github.com
         - arcmenu@arcmenu.com

@@ -185,3 +185,36 @@
       ansible.builtin.shell: |
         systemctl --user enable --now restic-prune.timer
       become: false
+
+    - name: Download material-shell
+      ansible.builtin.git:
+        repo: https://github.com/material-shell/material-shell.git
+        dest: "{{ home_dir }}/git/material-shell"
+        clone: true
+        update: true
+        force: true
+        version: main
+
+    - name: Install material-shell
+      ansible.builtin.shell: |
+        make install
+      args:
+        chdir: "{{ home_dir }}/git/material-shell"
+        executable: /bin/bash
+      when: ansible_os_family == "RedHat"
+
+    - debug:
+        msg: |
+          Restart GNOME Shell to enable material-shell!
+          On X.org: Hit Alt+F2 and type the command r
+          On Wayland: Log out and back in
+      when: ansible_os_family == "RedHat"
+
+    - name: Enable material-shell
+      ansible.builtin.shell: |
+        gnome-extensions enable material-shell@papyelgringo
+      become: true
+      become_user: "{{ local_user }}"
+      args:
+        executable: /bin/bash
+      when: ansible_os_family == "RedHat"

@@ -55,6 +55,7 @@
         - gh
         - git
         - inxi
+        - kitty
         - neofetch
         - nemo
         - nemo-fileroller
@@ -72,7 +73,7 @@
         - vim
         state: present
       become: true
-      tags: qa
+      # tags: qa
 
     # TODO: QA
     # - name: Enable redis
@@ -259,6 +260,8 @@
         - python3-setuptools
         - python3-wheel
         - redhat-rpm-config
+        - remove-retired-packages
+        - rpmconf
         - qt5-qtbase
         - qt5-qtbase-devel
         - rpm-build
@@ -269,7 +272,7 @@
         state: present
       become: true
       when: ansible_os_family == "RedHat"
-      # tags: qa
+      tags: qa
 
     - name: Install multimedia
       ansible.builtin.shell: |

@@ -224,6 +224,7 @@
         - curl
         - dmz-cursor-themes
         - dnf-utils
+        - dnf-plugin-system-upgrade
         - dnf-plugins-core
         - gcc
         - gcc-c++
@@ -268,6 +269,7 @@
         state: present
       become: true
       when: ansible_os_family == "RedHat"
+      # tags: qa
 
     - name: Install multimedia
       ansible.builtin.shell: |
@@ -513,14 +515,6 @@
       args:
         executable: /bin/bash
       when: ansible_os_family == "RedHat"
-
-    # - name: Install nautilus-dropbox
-    #   ansible.builtin.shell: |
-    #     dnf install -y https://linux.dropbox.com/packages/fedora/nautilus-dropbox-2022.12.05-1.fedora.x86_64.rpm
-    #   args:
-    #     executable: /bin/bash
-    #   become: true
-    #   when: ansible_os_family == "RedHat"
 
     - name: Install nemo-dropbox
       ansible.builtin.dnf:

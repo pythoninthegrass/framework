@@ -307,7 +307,7 @@
         results=$(echo q | gnome-shell-extension-installer --search "{{ item }}" | awk '/"uuid"/ {print $0}')
 
         # match first package (pk)
-        pk=$(echo $results | grep -o '"pk":\s[0-9]*' | awk '{print $2}')
+        pk=$(echo $results | grep -o '"pk":\s[0-9]*' | awk '{print $2; exit}')
 
         # install extension
         gnome-shell-extension-installer --yes $pk

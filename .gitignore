@@ -8,6 +8,7 @@ ansible.cfg
 redis.conf
 keys.json
 scratch.*
+.env.json
 .restic_excludes
 .exclude_from_backup
 

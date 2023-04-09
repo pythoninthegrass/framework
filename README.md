@@ -17,4 +17,5 @@ ansible-playbook tasks/pkg.yml -b -K --tags qa -vvv
 ```
 
 ## TODO
+* [Issues](https://github.com/pythoninthegrass/framework/issues)
 * Clean up repo based on target audience

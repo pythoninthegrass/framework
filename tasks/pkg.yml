@@ -220,38 +220,34 @@
         - bat
         - budgie-desktop
         - checkpolicy
-        - containerd.io
+        - cmake
         - code
+        - containerd.io
         - curl
         - dmz-cursor-themes
-        - dnf-utils
         - dnf-plugin-system-upgrade
         - dnf-plugins-core
+        - dnf-utils
         - firewall-config
         - gcc
         - gcc-c++
         - git
+        - gnome-extensions-app
         - gnome-shell-extension-appindicator
         - gnome-tweaks
-        - gnome-extensions-app
         - gstreamer1-plugin-openh264
         - gtk4
-        - gtksourceview5
-        - gtk-update-icon-cache
         - kernel-devel
         - libsodium
         - make
         - meson
+        - mozilla-openh264
         - nemo
         - nemo-fileroller
         - nemo-image-converter
         - nemo-preview
         - nemo-terminal
         - NetworkManager-tui
-        - libadwaita-devel
-        - libpanel
-        - mozilla-openh264
-        - ncurses-devel
         - openssl-devel
         - policycoreutils
         - policycoreutils-python-utils
@@ -263,10 +259,8 @@
         - python3-wheel
         - redhat-rpm-config
         - remove-retired-packages
-        - rpmconf
-        - qt5-qtbase
-        - qt5-qtbase-devel
         - rpm-build
+        - rpmconf
         - rpmdevtools
         - tailscale
         - vim-enhanced
@@ -274,7 +268,7 @@
         state: present
       become: true
       when: ansible_os_family == "RedHat"
-      tags: qa
+      # tags: qa
 
     - name: Install multimedia
       ansible.builtin.shell: |

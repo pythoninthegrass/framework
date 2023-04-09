@@ -1,0 +1,155 @@
+# code: language=ansible
+
+---
+- hosts: localhost
+  connection: local
+  gather_facts: true
+  # debugger: on_failed
+  any_errors_fatal: true
+  vars:
+    os_environment:
+      - key: EDITOR
+        value: vim
+  pre_tasks:
+      - name: Get running ansible user
+        ansible.builtin.set_fact:
+          local_user: "{{ lookup('env', 'USER') }}"
+          home_dir: "{{ lookup('env', 'HOME') }}"
+          work_dir: "{{ playbook_dir | dirname }}"
+          cacheable: true
+        tags: qa
+
+      - name: Top-level directory in project
+        ansible.builtin.shell: git rev-parse --show-toplevel
+        register: tld
+        tags: qa
+
+      - name: Set tld stdout fact
+        ansible.builtin.set_fact:
+          tld: "{{ tld.stdout }}"
+        tags: qa
+
+      - name: Get OS release
+        ansible.builtin.set_fact:
+          os_release: "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}"
+          major_ver: "{{ ansible_distribution_major_version }}"
+          distro: "{{ ansible_distribution }}"
+        tags: qa
+  tasks:
+    - name: Add hyprland copr repo
+      community.general.copr:
+        name: solopasha/hyprland
+        state: enabled
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Install hyprland
+      ansible.builtin.dnf:
+        name:
+          - hyprland
+        update_cache: true
+        state: present
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Install "Must Have" software
+      ansible.builtin.dnf:
+        name:
+          - dunst
+          - mako
+          - pipewire
+          - polkit-gnome
+          - qt5-qtwayland
+          - qt6-qtwayland
+          - wireplumber
+        update_cache: true
+        state: present
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Copy hyprland-titus files
+      ansible.builtin.copy:
+        src: "{{ tld }}/config/hypr"
+        dest: "{{ home_dir }}/.config/"
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        force: true
+      become: true
+      become_user: "{{ local_user }}"
+      tags: qa
+
+    - name: Download hyprload install script
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/Duckonaut/hyprload/main/install.sh
+        dest: /tmp/hyprload-install.sh
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: 0755
+      tags: qa
+
+    - name: Install hyprload
+      ansible.builtin.shell: /tmp/hyprload-install.sh
+      become: true
+      become_user: "{{ local_user }}"
+      tags: qa
+
+    - name: Add swaylock-effects copr
+      community.general.copr:
+        name: eddsalkield/swaylock-effects
+        state: enabled
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Install swaylock-effects
+      ansible.builtin.dnf:
+        name:
+          - swaylock-effects
+        update_cache: true
+        state: present
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    # TODO:
+    # * grimblast: https://github.com/hyprwm/contrib
+
+    - name: Add nwg-shell copr
+      community.general.copr:
+        name: tofik/nwg-shell
+        state: enabled
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Install hyprland-titus packages
+      ansible.builtin.dnf:
+        name:
+        - adobe-source-code-pro-fonts
+        - cairo
+        - cairo-gobject
+        - dunst
+        - ffmpeg
+        - ffmpegthumbnailer
+        - kitty
+        - neovim
+        - nwg-look
+        - rofi
+        - sddm
+        - swaybg
+        - swaylock-effects
+        - thunar
+        - thunar-archive-plugin
+        - tumbler
+        - viewnior
+        - waybar-hyprland
+        - wf-recorder
+        - wl-clipboard
+        - wlogout
+        update_cache: true
+        state: present
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - ansible.builtin.debug:
+        msg: |
+          ENABLE SDDM:
+          systemctl disable gdm
+          systemctl enable --now sddm

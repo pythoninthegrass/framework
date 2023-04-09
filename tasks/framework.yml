@@ -261,8 +261,15 @@
 
         # Prevent a **potencial** Fedora freezing issue:
         grubby --update-kernel=ALL --args="i915.enable_psr=0"
+
+        # To enable brightness up/down keys
+        cpuinfo=$(cat /proc/cpuinfo | awk '/model name/ {print $NF; exit}')
+        if [[ $cpuinfo == "i7-1260P" ]]; then
+          grubby --update-kernel=ALL --args="module_blacklist=hid_sensor_hub"
+        fi
       args:
         executable: /bin/bash
+      become: true
       when: ansible_os_family == "RedHat"
       # tags: qa
 

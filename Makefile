@@ -49,9 +49,8 @@ RESET  := $(shell tput -Txterm sgr0)
 
 # targets
 .PHONY: all
-all: ansible ansible-galaxy sanity-check git help homebrew just install xcode
+all: ansible ansible-galaxy sanity-check git help homebrew just install update xcode
 
-# TODO: QA Linux (Debian/Ubuntu)
 # * cf. `distrobox create --name i-use-arch-btw --image archlinux:latest && distrobox enter i-use-arch-btw`
 # * || `distrobox create --name debby --image debian:stable && distrobox enter debby`
 
@@ -67,56 +66,68 @@ sanity-check:  ## output environment variables
 	@echo "PIP: ${PIP}"
 
 xcode: ## install xcode command line tools
-	@echo "Installing Xcode command line tools..."
-	if [ "${UNAME}" == "Darwin" ] && [ "${XCODE}" -ne 1 ]; then \
-		xcode-select --install; \
+	if [ "${UNAME}" = "Darwin" ]; then \
+		echo "Installing Xcode command line tools..."; \
+		[ "${XCODE}" -ne 1 ] && xcode-select --install; \
 	fi
 
 homebrew: ## install homebrew
-	@echo "Installing Homebrew..."
-	if [ "${UNAME}" == "Darwin" ] && [ -z "${BREW}" ]; then \
+	if [ "${UNAME}" = "Darwin" ] && [ -z "${BREW}" ]; then \
+		echo "Installing Homebrew..."; \
 		/bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; \
+	fi
+
+update: ## update package manager
+	@echo "Updating package manager..."
+	if [ "${UNAME}" = "Darwin" ] && [ "$(command -v brew >/dev/null 2>&1; echo $?)" -eq 0 ]; then \
+		brew update; \
+	elif [ "${ID}" = "ubuntu" ]; then \
+		sudo apt update; \
+	elif [ "${ID}" = "fedora" ]; then \
+		sudo dnf update; \
+	elif [ "${ID}" = "arch" ]; then \
+		yes | sudo pacman -Syu; \
 	fi
 
 git: ## install git
 	@echo "Installing Git..."
-	if [ "${UNAME}" == "Darwin" ] && [ "$(command -v brew >/dev/null 2>&1; echo $?)" -eq 0 ]; then \
+	if [ "${UNAME}" = "Darwin" ] && [ "$(command -v brew >/dev/null 2>&1; echo $?)" -eq 0 ]; then \
 		brew install git; \
-	elif [ "${ID}" == "ubuntu" ]; then \
+	elif [ "${ID}" = "ubuntu" ]; then \
 		sudo apt install -y git; \
-	elif [ "${ID}" == "fedora" ]; then \
+	elif [ "${ID}" = "fedora" ]; then \
 		sudo dnf install -y git; \
-	elif [ "${ID}" == "arch" ]; then \
+	elif [ "${ID}" = "arch" ]; then \
 		yes | sudo pacman -S git; \
 	fi
 
 python: ## install python
 	@echo "Installing Python..."
-	if [ "${UNAME}" == "Darwin" ] && [ -z "${PYTHON}" ]; then \
+	if [ "${UNAME}" = "Darwin" ] && [ -z "${PYTHON}" ]; then \
 		brew install python; \
-	elif [ "${ID}" == "ubuntu" ]; then \
+	elif [ "${ID}" = "ubuntu" ]; then \
 		sudo apt install -y python3; \
-	elif [ "${ID}" == "fedora" ]; then \
+	elif [ "${ID}" = "fedora" ]; then \
 		sudo dnf install -y python3; \
-	elif [ "${ID}" == "arch" ]; then \
+	elif [ "${ID}" = "arch" ]; then \
 		yes | sudo pacman -S python; \
 	fi
 
 pip: python ## install pip
 	@echo "Installing Pip..."
-	if [ "${UNAME}" == "Darwin" ] && [ -z "${PYTHON})" ]; then \
+	if [ "${UNAME}" = "Darwin" ] && [ -z "${PYTHON})" ]; then \
 		brew install python; \
-	elif [ "${ID}" == "ubuntu" ] && [ -z "${PIP}" ]; then \
+	elif [ "${ID}" = "ubuntu" ] && [ -z "${PIP}" ]; then \
 		sudo apt install -y python3-pip; \
-	elif [ "${ID}" == "fedora" ] && [ -z "${PIP}" ]; then \
+	elif [ "${ID}" = "fedora" ] && [ -z "${PIP}" ]; then \
 		sudo dnf install -y python3-pip; \
-	elif [ "${ID}" == "arch" ] && [ -z "${PIP}" ]; then \
+	elif [ "${ID}" = "arch" ] && [ -z "${PIP}" ]; then \
 		yes | sudo pacman -S python-pip; \
 	fi \
 
 ansible: pip ## install ansible
 	@echo "Installing Ansible..."
-	if [ "${UNAME}" == "Darwin" ] && [ -z "${ANSIBLE}" ] || [ -z "${ANSIBLE_LINT}" ]; then \
+	if [ "${UNAME}" = "Darwin" ]; then \
 		brew install ansible ansible-lint; \
 	else \
 		python3 -m pip install ansible ansible-lint; \
@@ -124,25 +135,30 @@ ansible: pip ## install ansible
 		sudo chmod 666 /var/log/ansible.log; \
 	fi
 
-ansible-galaxy: ansible ## install ansible galaxy roles
+ansible-galaxy: ansible git ## install ansible galaxy roles
 	@echo "Installing Ansible Galaxy roles..."
-	ansible-galaxy install -r requirements.yml
+	curl https://raw.githubusercontent.com/pythoninthegrass/framework/master/requirements.yml -o /tmp/requirements.yml; \
+	if [ "${UNAME}" = "Darwin" ]; then \
+		ansible-galaxy install -r /tmp/requirements.yml; \
+	elif [ "${UNAME}" = "Linux" ]; then \
+		~/.local/bin/ansible-galaxy install -r /tmp/requirements.yml; \
+	fi
 
 just: ## install justfile
 	@echo "Installing Justfile..."
-	if [ "${UNAME}" == "Darwin" ]; then \
+	if [ "${UNAME}" = "Darwin" ]; then \
 		brew install just; \
-	elif [ "${ID}" == "ubuntu" ]; then \
+	elif [ "${ID}" = "ubuntu" ]; then \
 		sudo apt install -y just; \
-	elif [ "${ID}" == "fedora" ]; then \
+	elif [ "${ID}" = "fedora" ]; then \
 		sudo dnf install -y just; \
-	elif [ "${ID}" == "arch" ]; then \
+	elif [ "${ID}" = "arch" ]; then \
 		yes | sudo pacman -S just; \
 	fi
 
-install: sanity-check xcode homebrew git python pip ansible ansible-galaxy just  ## install all dependencies
+install: sanity-check update xcode homebrew git python pip ansible ansible-galaxy just  ## install all dependencies
 
-help: ## Show this help.
+help: ## show this help
 	@echo ''
 	@echo 'Usage:'
 	@echo '    ${YELLOW}make${RESET} ${GREEN}<target>${RESET}'

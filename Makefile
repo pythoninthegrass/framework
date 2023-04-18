@@ -49,7 +49,7 @@ RESET  := $(shell tput -Txterm sgr0)
 
 # targets
 .PHONY: all
-all: ansible ansible-galaxy sanity-check git help homebrew just install update xcode
+all: ansible ansible-galaxy sanity-check git help homebrew just install mpr update xcode
 
 # * cf. `distrobox create --name i-use-arch-btw --image archlinux:latest && distrobox enter i-use-arch-btw`
 # * || `distrobox create --name debby --image debian:stable && distrobox enter debby`
@@ -144,7 +144,16 @@ ansible-galaxy: ansible git ## install ansible galaxy roles
 		~/.local/bin/ansible-galaxy install -r /tmp/requirements.yml; \
 	fi
 
-just: ## install justfile
+# TODO: "/usr/bin/sh: 3: [: =: unexpected operator" `ne` and `!=` operators don't work (╯°□°）╯︵ ┻━┻
+mpr: ## install the makedeb package repo (mpr) for prebuilt packages
+	@echo "Installing the makedeb package repo (mpr)..."
+	if [ "${ID}" = "ubuntu" ]; then \
+		[ $(command -v wget >/dev/null 2>&1; echo $?) = 0 ] || sudo apt install -y wget; \
+		wget -qO - 'https://proget.makedeb.org/debian-feeds/prebuilt-mpr.pub' | gpg --dearmor | sudo tee /usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg 1> /dev/null; \
+		echo "deb [arch=amd64 signed-by=/usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg] https://proget.makedeb.org prebuilt-mpr $(lsb_release -cs)" | sudo tee /etc/apt/sources.list.d/prebuilt-mpr.list; \
+	fi; \
+
+just: mpr update## install justfile
 	@echo "Installing Justfile..."
 	if [ "${UNAME}" = "Darwin" ]; then \
 		brew install just; \
@@ -156,7 +165,7 @@ just: ## install justfile
 		yes | sudo pacman -S just; \
 	fi
 
-install: sanity-check update xcode homebrew git python pip ansible ansible-galaxy just  ## install all dependencies
+install: sanity-check update xcode homebrew git python pip ansible ansible-galaxy mpr just  ## install all dependencies
 
 help: ## show this help
 	@echo ''

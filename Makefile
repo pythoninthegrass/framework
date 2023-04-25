@@ -44,6 +44,10 @@ ifeq ($(shell command -v ansible-lint >/dev/null 2>&1; echo $$?), 0)
 	export ANSIBLE_LINT := $(shell which ansible-lint)
 endif
 
+ifeq ($(shell command -v wget >/dev/null 2>&1; echo $$?), 0)
+	export WGET := $(shell which wget)
+endif
+
 ifneq (,$(wildcard /etc/os-release))
 	include /etc/os-release
 endif
@@ -159,11 +163,10 @@ ansible-galaxy: ansible git ## install ansible galaxy roles
 		"${ANSIBLE_GALAXY}" install -r /tmp/requirements.yml; \
 	fi
 
-# TODO: "/usr/bin/sh: 3: [: =: unexpected operator" `ne` and `!=` operators don't work (╯°□°）╯︵ ┻━┻
 mpr: ## install the makedeb package repo (mpr) for prebuilt packages
 	@echo "Installing the makedeb package repo (mpr)..."
 	if [ "${ID}" = "ubuntu" ]; then \
-		[ $(command -v wget >/dev/null 2>&1; echo $?) = 0 ] || sudo apt install -y wget; \
+		[ -z "${WGET}" ] || sudo apt install -y wget; \
 		wget -qO - 'https://proget.makedeb.org/debian-feeds/prebuilt-mpr.pub' | gpg --dearmor | sudo tee /usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg 1> /dev/null; \
 		echo "deb [arch=amd64 signed-by=/usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg] https://proget.makedeb.org prebuilt-mpr $(lsb_release -cs)" | sudo tee /etc/apt/sources.list.d/prebuilt-mpr.list; \
 	fi; \

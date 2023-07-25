@@ -89,7 +89,6 @@
         regexp: '^Defaults\s+env_reset'
         line: 'Defaults    env_reset,  editor="/usr/bin/vim", timestamp_timeout=30'
         validate: /usr/sbin/visudo -cf %s
-      when: ansible_os_family == "RedHat"
 
     - name: Disable standard wheel group
       ansible.builtin.lineinfile:
@@ -100,7 +99,6 @@
         line: '# %wheel  ALL=(ALL)       ALL'
         validate: /usr/sbin/visudo -cf %s
       become: true
-      when: ansible_os_family == "RedHat"
 
     - name: Enable wheel nopasswd
       ansible.builtin.lineinfile:
@@ -111,4 +109,3 @@
         line: '%wheel  ALL=(ALL)      NOPASSWD:ALL'
         validate: /usr/sbin/visudo -cf %s
       become: true
-      when: ansible_os_family == "RedHat"

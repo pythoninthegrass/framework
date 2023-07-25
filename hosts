@@ -1,6 +1,7 @@
----
 [all]
-localhost              ansible_connection=local
+localhost               ansible_connection=local
+192.168.8.79            ansible_connection=ssh
+192.168.8.161           ansible_connection=ssh
 
 [all:vars]
 ansible_user=ansible

@@ -52,7 +52,7 @@
       with_items:
         - ansible
 
-    - name: Create user
+    - name: Create user (RedHat)
       ansible.builtin.user:
         name: "{{ item }}"
         groups: ["{{ item }}", wheel]
@@ -62,6 +62,63 @@
       become: true
       with_items:
         - ansible
+      when: ansible_os_family == "RedHat"
+
+    - name: Disable standard wheel group (RedHat)
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: '^%wheel\s+ALL=\(ALL\)\s+ALL$'
+        firstmatch: true
+        line: '# %wheel  ALL=(ALL)       ALL'
+        validate: /usr/sbin/visudo -cf %s
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Enable wheel nopasswd (RedHat)
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: '^#\s%wheel\s+ALL=\(ALL\)\s+NOPASSWD:\s?ALL$'
+        firstmatch: true
+        line: '%wheel  ALL=(ALL)      NOPASSWD:ALL'
+        validate: /usr/sbin/visudo -cf %s
+      become: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Create user (Debian)
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: ["{{ item }}", sudo]
+        state: present
+        shell: /bin/bash
+        create_home: false
+      become: true
+      with_items:
+        - ansible
+      when: ansible_os_family == "Debian"
+
+    - name: Disable standard sudo group (Debian)
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: '^%sudo\s+ALL=\(ALL\)\s+ALL$'
+        firstmatch: true
+        line: '# %sudo ALL=(ALL) ALL'
+        validate: /usr/sbin/visudo -cf %s
+      become: true
+      when: ansible_os_family == "Debian"
+
+    - name: Enable sudo nopasswd (Debian)
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: '^#\s%sudo\s+ALL=\(ALL\)\s+NOPASSWD:\s?ALL$'
+        firstmatch: true
+        line: '%sudo ALL=(ALL) NOPASSWD:ALL'
+        validate: /usr/sbin/visudo -cf %s
+      become: true
+      when: ansible_os_family == "Debian"
 
     - name: Generate ssh key for user
       ansible.builtin.openssh_keypair:
@@ -73,15 +130,6 @@
       with_items:
         - ansible
 
-    # TODO: QA
-    - name: Add user public ssh keys
-      ansible.builtin.authorized_key:
-        user: "{{ local_user }}"
-        key: "{{ lookup('file', item) }}"
-        state: present
-      with_items:
-        - "{{ home_dir }}/.ssh/ansible.pub"
-
     - name: Set vim as default sudoers editor
       ansible.builtin.lineinfile:
         path: /etc/sudoers
@@ -90,22 +138,11 @@
         line: 'Defaults    env_reset,  editor="/usr/bin/vim", timestamp_timeout=30'
         validate: /usr/sbin/visudo -cf %s
 
-    - name: Disable standard wheel group
-      ansible.builtin.lineinfile:
-        path: /etc/sudoers
+    # TODO: QA
+    - name: Add user public ssh keys
+      ansible.builtin.authorized_key:
+        user: "{{ local_user }}"
+        key: "{{ lookup('file', item) }}"
         state: present
-        regexp: '^%wheel\s+ALL=\(ALL\)\s+ALL$'
-        firstmatch: true
-        line: '# %wheel  ALL=(ALL)       ALL'
-        validate: /usr/sbin/visudo -cf %s
-      become: true
-
-    - name: Enable wheel nopasswd
-      ansible.builtin.lineinfile:
-        path: /etc/sudoers
-        state: present
-        regexp: '^#\s%wheel\s+ALL=\(ALL\)\s+NOPASSWD:\s?ALL$'
-        firstmatch: true
-        line: '%wheel  ALL=(ALL)      NOPASSWD:ALL'
-        validate: /usr/sbin/visudo -cf %s
-      become: true
+      with_items:
+        - "{{ home_dir }}/.ssh/ansible.pub"

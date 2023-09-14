@@ -262,6 +262,7 @@
         - rpmconf
         - rpmdevtools
         - tailscale
+        - thefuck
         - vim-enhanced
         update_cache: yes
         state: present

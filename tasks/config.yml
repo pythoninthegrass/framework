@@ -38,7 +38,7 @@
   tasks:
     - name: .bashrc
       ansible.builtin.copy:
-        src: config/.bashrc.fedora
+        src: "{{ tld }}/config/.bashrc.fedora"
         dest: "{{ home_dir }}/.bashrc"
         owner: "{{ local_user }}"
         group: "{{ local_user }}"

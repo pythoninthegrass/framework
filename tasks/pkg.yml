@@ -224,7 +224,6 @@
         - code
         - containerd.io
         - curl
-        - dmz-cursor-themes
         - dnf-plugin-system-upgrade
         - dnf-plugins-core
         - dnf-utils
@@ -277,6 +276,7 @@
         executable: /bin/bash
       become: true
       when: ansible_os_family == "RedHat"
+      tags: skip
 
     - name: Start tailscale
       ansible.builtin.service:
@@ -301,7 +301,7 @@
       become: true
       when: ansible_os_family == "RedHat"
 
-    # gnome-extensions list | sort -u
+    # gnome-extensions list --enabled | sort -u
     - name: Install gnome extensions
       ansible.builtin.shell: |
         results=$(echo q | gnome-shell-extension-installer --search "{{ item }}" | awk '/"uuid"/ {print $0}')
@@ -322,6 +322,7 @@
         - caffeine@patapon.info
         - clipboard-indicator@tudmotu.com
         - dash-to-panel@jderose9.github.com
+        - GPU_profile_selector@lorenzo9904.gmail.com
         - launch-new-instance@gnome-shell-extensions.gcampax.github.com
         - multi-monitors-add-on@spin83
         - places-menu@gnome-shell-extensions.gcampax.github.com
@@ -425,7 +426,7 @@
 
     - name: Copy starship config
       copy:
-        src: ../config/starship.toml
+        src: "{{ tld }}/config/starship.toml"
         dest: "{{ home_dir }}/.config/starship.toml"
 
     - name: Download asdf

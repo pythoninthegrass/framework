@@ -59,8 +59,9 @@
         repo: https://github.com/asdf-vm/asdf.git
         dest: "{{ home_dir }}/.asdf"
         version: v0.11.3
-        force: true
+        force: false
       become: false
+      become_user: "{{ local_user }}"
 
     - name: Add asdf plugins
       ansible.builtin.shell: |
@@ -71,7 +72,8 @@
       with_items:
         - nodejs
         - rust https://github.com/code-lever/asdf-rust.git
-      become: false
+      become: true
+      become_user: "{{ local_user }}"
 
     - name: Install latest runtime
       ansible.builtin.shell: |
@@ -83,7 +85,8 @@
       with_items:
         - nodejs
         - rust
-      become: false
+      become: true
+      become_user: "{{ local_user }}"
 
     - name: npm global path
       ansible.builtin.lineinfile:
@@ -94,7 +97,8 @@
         line: 'export NPM_GLOBAL="$HOME/.npm-global/bin"'
         insertafter: '^export N\_PREFIX\=.*$'
         backup: true
-      become: false
+      become: true
+      become_user: "{{ local_user }}"
 
     - name: lvim dependencies
       ansible.builtin.shell: |
@@ -110,20 +114,25 @@
     - name: Install lunar vim
       ansible.builtin.shell: |
         yes | bash <(curl -s https://raw.githubusercontent.com/lunarvim/lunarvim/master/utils/installer/install.sh)
-      become: false
-      # tags: qa
+      become: true
+      become_user: "{{ local_user }}"
+      tags: qa
 
     - name: Create config directory
       ansible.builtin.file:
         path: "{{ home_dir }}/.config/lvim"
         state: directory
         mode: '0755'
-      become: false
+      become: true
+      become_user: "{{ local_user }}"
+      tags: qa
 
     # TODO: clone gist
     - name: Create config file
       ansible.builtin.copy:
-        src: lvim/config.lua
+        src: "{{ tld }}/config/config.lua"
         dest: "{{ home_dir }}/.config/lvim/config.lua"
         mode: '0644'
-      become: false
+      become: true
+      become_user: "{{ local_user }}"
+      tags: qa

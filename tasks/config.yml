@@ -38,7 +38,7 @@
   tasks:
     - name: .bashrc
       ansible.builtin.copy:
-        src: config/.bashrc.fedora
+        src: "{{ tld }}/config/.bashrc.fedora"
         dest: "{{ home_dir }}/.bashrc"
         owner: "{{ local_user }}"
         group: "{{ local_user }}"
@@ -88,9 +88,19 @@
         force: yes
       become: false
 
-    - name: requirements.txt
+    - name: Copy requirements.txt
+      ansible.builtin.copy:
+        src: "{{ tld }}/config/requirements.txt"
+        dest: "{{ home_dir }}/.config/requirements.txt"
+        owner: "{{ local_user }}"
+        group: "{{ local_user }}"
+        mode: 0644
+        force: yes
+      become: false
+
+    - name: Install requirements.txt
       ansible.builtin.pip:
-        requirements: "{{ tld }}/config/requirements.txt"
+        requirements: "{{ home_dir }}/.config/requirements.txt"
         state: present
         extra_args: --user
       become: false

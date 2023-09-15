@@ -98,7 +98,7 @@ update: ## update package manager
 	elif [ "${ID}" = "fedora" ]; then \
 		sudo dnf update; \
 	elif [ "${ID}" = "arch" ]; then \
-		yes | sudo pacman -Syu; \
+		sudo pacman -Syu --noconfirm; \
 	fi
 
 git: ## install git
@@ -110,7 +110,7 @@ git: ## install git
 	elif [ "${ID}" = "fedora" ]; then \
 		sudo dnf install -y git; \
 	elif [ "${ID}" = "arch" ]; then \
-		yes | sudo pacman -S git; \
+		sudo pacman -S --noconfirm git; \
 	fi
 
 python: ## install python
@@ -122,7 +122,7 @@ python: ## install python
 	elif [ "${ID}" = "fedora" ]; then \
 		sudo dnf install -y python3; \
 	elif [ "${ID}" = "arch" ]; then \
-		yes | sudo pacman -S python; \
+		sudo pacman -S --noconfirm python; \
 	fi
 
 pip: python ## install pip
@@ -134,7 +134,7 @@ pip: python ## install pip
 	elif [ "${ID}" = "fedora" ] && [ -z "${PIP}" ]; then \
 		sudo dnf install -y python3-pip; \
 	elif [ "${ID}" = "arch" ] && [ -z "${PIP}" ]; then \
-		yes | sudo pacman -S python-pip; \
+		sudo pacman -S --noconfirm python-pip; \
 	fi \
 
 ansible: pip ## install ansible
@@ -152,7 +152,7 @@ ansible: pip ## install ansible
 ansible-galaxy: ansible git ## install ansible galaxy roles
 	@echo "Installing Ansible Galaxy roles..."
 	if [ ! -f /tmp/requirements.yml ]; then \
-		curl https://raw.githubusercontent.com/pythoninthegrass/framework/master/requirements.yml -o /tmp/requirements.yml; \
+		curl -s https://raw.githubusercontent.com/pythoninthegrass/framework/master/tasks/collections/requirements.yml -o /tmp/requirements.yml; \
 	fi; \
 	if [ "${UNAME}" = "Darwin" ]; then \
 		ansible-galaxy install -r /tmp/requirements.yml; \
@@ -180,7 +180,7 @@ just: mpr update## install justfile
 	elif [ "${ID}" = "fedora" ]; then \
 		sudo dnf install -y just; \
 	elif [ "${ID}" = "arch" ]; then \
-		yes | sudo pacman -S just; \
+		sudo pacman -S --noconfirm just; \
 	fi
 
 install: sanity-check update xcode homebrew git python pip ansible ansible-galaxy mpr just  ## install all dependencies

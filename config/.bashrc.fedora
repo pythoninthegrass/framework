@@ -8,10 +8,6 @@ if [[ $- != *i* ]]; then return; fi
 # export BASH_XTRACEFD=5
 # PS4=":${BASH_SOURCE[0]##*/}:$LINENO+"; set -x
 
-# dotdrop
-alias dotdrop="dotdrop --cfg=$HOME/dotfiles/config.yaml"
-export DOTDROP_PROFILE="work"
-
 # PATH
 export ASDF_DIR="$HOME/.asdf"
 export N_PREFIX="$HOME/.n"
@@ -37,9 +33,6 @@ export PATH=$(echo -n $PATH | awk -v RS=: -v ORS=: '!x[$0]++' | sed "s/\(.*\).\{
 [[ -f "$HOME/.gitleaks.bash" ]] && . "$HOME/.gitleaks.bash"
 [[ -f "$HOME/.just.bash" ]] && . "$HOME/.just.bash"
 
-# rbenv aliases
-eval "$(rbenv init - bash)"
-
 # Vim Default Editor
 export EDITOR="lvim"
 
@@ -62,8 +55,6 @@ stty -ixon
 export BLOCKSIZE=1k
 
 # python
-# macOS: verify brew symlinks via `brew link --overwrite python`
-# alias python='python3'
 export PYTHONSTARTUP="$HOME/.config/startup.py"
 pip_install() { python -m pip install --user $@; }
 pip_uninstall() { python -m pip uninstall -y $@; }
@@ -130,24 +121,6 @@ rm_git-secrets() {
     echo "Fini!" ;
 }
 
-# gam
-# gam() { "$HOME/bin/gam/gam" "$@" ; }  # OG
-gam() { "$HOME/bin/gamadv-xtd3/gam" "$@" ; }
-
-# Codi (https://github.com/metakirby5/codi.vim)
-# Usage: codi [filetype] [filename]
-codi() {
-  local syntax="${1:-python}"
-  shift
-  vim -c \
-    "let g:startify_disable_at_vimenter = 1 |\
-    set bt=nofile ls=0 noru nonu nornu |\
-    hi ColorColumn ctermbg=NONE |\
-    hi VertSplit ctermbg=NONE |\
-    hi NonText ctermfg=0 |\
-    Codi $syntax" "$@"
-}
-
 # aws
 export AWS_VAULT_PROMPT=terminal
 export AWS_DEFAULT_PROFILE="dev.use1"
@@ -161,10 +134,6 @@ export AWS_DEFAULT_PROFILE="dev.use1"
 # }
 
 # ssh-aws() { ssh -i ~/.ssh/it-us-east-1.pem ubuntu@$(ip_from_instance "$1") ; }
-
-# playwright (firewall prompt)
-alias sign-playwright="sudo codesign --force --deep \
-    --sign - $HOME/Library/Caches/ms-playwright/chromium-*/chrome-mac/Chromium.app"
 
 # terraform
 alias tf='AWS_PROFILE="" terraform'

@@ -1,12 +1,9 @@
 # code: language=ansible
 
-# SOURCE: https://gist.github.com/mkubenka/f234bc17b693c513feddcb565265212e
-
 ---
 - hosts: localhost
   connection: local
   gather_facts: true
-  # debugger: on_failed
   any_errors_fatal: true
   vars:
     base_dir: "{{ home_dir }}/git/nerd-fonts"
@@ -21,6 +18,11 @@
         work_dir: "{{ playbook_dir | dirname }}"
         cacheable: true
   tasks:
+    - name: Delete repo directory if it exists
+      ansible.builtin.file:
+        path: "{{ base_dir }}"
+        state: absent
+
     - name: Create repo directory
       ansible.builtin.file:
         path: "{{ base_dir }}"
@@ -29,22 +31,17 @@
         group: "{{ local_user }}"
         mode: 0755
 
-    - name: Prepare sparse git repository
-      shell: |
-        git init
-        git config core.sparsecheckout true
-        git remote add origin {{ repo_url }}
-      args:
-        chdir: "{{ base_dir }}"
-        creates: "{{ base_dir }}/.git"
-
-    - name: Configure sparse-checkout
-      copy:
-        dest: "{{ base_dir }}/.git/info/sparse-checkout"
-        content: '{{ sparse_checkout | join("\n") }}'
-
     - name: Clone repo
-      shell: git pull origin "{{ version }}"
-      args:
-        chdir: "{{ base_dir }}"
-        creates: "{{ base_dir }}/{{ sparse_checkout | first }}"
+      ansible.builtin.shell: |
+        git clone --filter=blob:none --sparse "{{ repo_url }}" "{{ base_dir }}"
+        cd "{{ base_dir }}"
+        git sparse-checkout add "{{ sparse_checkout }}"
+      become: true
+      become_user: "{{ local_user }}"
+
+    - name: Install font
+      ansible.builtin.shell: |
+        cd "{{ base_dir }}"
+        ./install.sh Hack
+      become: true
+      become_user: "{{ local_user }}"

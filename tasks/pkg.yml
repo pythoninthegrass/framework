@@ -219,6 +219,7 @@
         - automake
         - bat
         - budgie-desktop
+        - bzip2-devel
         - checkpolicy
         - cmake
         - code
@@ -236,11 +237,14 @@
         - gnome-tweaks
         - gstreamer1-plugin-openh264
         - gtk4
+        - htop
         - kernel-devel
         - libsodium
+        - libffi-devel
         - make
         - meson
         - mozilla-openh264
+        - ncurses-devel
         - nemo
         - nemo-fileroller
         - nemo-image-converter
@@ -256,19 +260,23 @@
         - python3-psutil
         - python3-setuptools
         - python3-wheel
+        - readline-devel
         - redhat-rpm-config
         - remove-retired-packages
         - rpm-build
         - rpmconf
         - rpmdevtools
+        - sqlite-devel
         - tailscale
         - thefuck
         - vim-enhanced
+        - xz-devel
+        - zlib
+        - zlib-devel
         update_cache: yes
         state: present
       become: true
       when: ansible_os_family == "RedHat"
-      # tags: qa
 
     - name: Install multimedia
       ansible.builtin.shell: |

@@ -46,7 +46,7 @@ truncation_symbol = "…/"
 truncate_to_repo = true
 
 [git_branch]
-truncation_length = 4
+truncation_length = 10
 truncation_symbol = ''
 
 [git_status]

@@ -195,3 +195,37 @@
       ansible.builtin.shell: |
         systemctl --user enable --now restic-prune.timer
       become: false
+
+    - name: Set vm.swappiness (memory)
+      ansible.builtin.sysctl:
+        name: vm.swappiness
+        value: 10
+        state: present
+        reload: yes
+      become: true
+
+    - name: Set vm.swappiness (/etc/sysctl.conf)
+      ansible.builtin.lineinfile:
+        path: /etc/sysctl.conf
+        state: present
+        regexp: '^vm.swappiness.*'
+        line: 'vm.swappiness = 10'
+        insertafter: '^#vm.swappiness.*$'
+      become: true
+
+    - name: Set vm.vfs_cache_pressure (memory)
+      ansible.builtin.sysctl:
+        name: vm.vfs_cache_pressure
+        value: 50
+        state: present
+        reload: yes
+      become: true
+
+    - name: Set vm.vfs_cache_pressure (/etc/sysctl.conf)
+      ansible.builtin.lineinfile:
+        path: /etc/sysctl.conf
+        state: present
+        regexp: '^vm.vfs_cache_pressure.*'
+        line: 'vm.vfs_cache_pressure = 50'
+        insertafter: '^#vm.vfs_cache_pressure.*$'
+      become: true

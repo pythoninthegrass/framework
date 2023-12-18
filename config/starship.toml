@@ -18,7 +18,7 @@ add_newline = true
 # standalone format to get os glyph on ps1 line,
 # prompt character below
 format = """
-$os$username$hostname:$directory$git_branch$git_status$git_commit$python
+$os$username$hostname:$directory$git_branch$git_status$git_commit$python$cmd_duration
 $character
 """
 
@@ -62,6 +62,10 @@ commit_hash_length = 4
 variable = "SHELL"
 default = "unknown shell"
 disabled = true
+
+[cmd_duration]
+min_time = 500
+format = '[$duration](bold yellow)'
 
 # Show python version starting with venv
 [python]
@@ -123,4 +127,3 @@ SUSE = " "
 Ubuntu = " "
 Unknown = " "
 Windows = "󰍲 "
-

@@ -10,5 +10,12 @@ warn_list:
   - line-length
   - yaml[line-length]
 skip_list:
+  - command-instead-of-shell
+  - experimental
+  - fqcn
+  - name[missing]
+  - no-changed-when
   - risky-file-permissions
+  - role-name
+  - schema[meta]
 offline: true

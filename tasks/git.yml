@@ -5,7 +5,6 @@
   connection: local
   become: true
   gather_facts: true
-  # debugger: on_failed
   any_errors_fatal: true
   collections:
     - community.general
@@ -26,28 +25,80 @@
         work_dir: "{{ playbook_dir | dirname }}"
         cacheable: true
       delegate_to: localhost
-      tags: qa
 
-    - name: Register ~/.gitconfig user.name and user.email
-      ansible.builtin.shell: |
-        git config --global user.name "{{ git_user.0.value }}"
-        git config --global user.email "{{ git_user.1.value }}"
-      become: false
-
-    - name: Cross-platform dependencies
-      become_user: root
-      ansible.builtin.package:
-        name:
-        - acl
-        - git
-        state: present
   tasks:
-    - name: Add a setting to ~/.gitconfig
+    - name: Register ~/.gitconfig user.name and user.email
+      community.general.git_config:
+        name: "{{ item.key }}"
+        scope: global
+        value: "{{ item.value }}"
+      loop: "{{ git_user }}"
+      become: false
+      become_user: "{{ ansible_env.SUDO_USER }}"
+
+    - name: Add switch alias to ~/.gitconfig
+      community.general.git_config:
+        name: alias.switch
+        scope: global
+        value: "!legit switch"
+      become: false
+      become_user: "{{ ansible_env.SUDO_USER }}"
+
+    - name: Add sync alias to ~/.gitconfig
+      community.general.git_config:
+        name: alias.sync
+        scope: global
+        value: "!legit sync"
+      become: false
+      become_user: "{{ ansible_env.SUDO_USER }}"
+
+    - name: Add publish alias to ~/.gitconfig
+      community.general.git_config:
+        name: alias.publish
+        scope: global
+        value: "!legit publish"
+      become: false
+      become_user: "{{ ansible_env.SUDO_USER }}"
+
+    - name: Add unpublish alias to ~/.gitconfig
+      community.general.git_config:
+        name: alias.unpublish
+        scope: global
+        value: "!legit unpublish"
+      become: false
+      become_user: "{{ ansible_env.SUDO_USER }}"
+
+    - name: Add undo alias to ~/.gitconfig
+      community.general.git_config:
+        name: alias.undo
+        scope: global
+        value: "!legit undo"
+      become: false
+      become_user: "{{ ansible_env.SUDO_USER }}"
+
+    - name: Add branches alias to ~/.gitconfig
+      community.general.git_config:
+        name: alias.branches
+        scope: global
+        value: "!legit branches"
+      become: false
+      become_user: "{{ ansible_env.SUDO_USER }}"
+
+    - name: Add parent alias to ~/.gitconfig
+      community.general.git_config:
+        name: alias.parent
+        scope: global
+        value: "!git show-branch | grep '*' | grep -v \"$(git rev-parse --abbrev-ref HEAD)\" | head -n1 | sed 's/.*\\[\\(.*\\)\\].*/\\1/' | sed 's/[\\^~].*//'"
+      become: false
+      become_user: "{{ ansible_env.SUDO_USER }}"
+
+    - name: Add amend alias to ~/.gitconfig
       community.general.git_config:
         name: alias.amend
         scope: global
         value: commit --amend --no-edit
       become: false
+      become_user: "{{ ansible_env.SUDO_USER }}"
 
     - name: Add a setting to ~/.gitconfig
       community.general.git_config:
@@ -55,6 +106,7 @@
         scope: global
         value: true
       become: false
+      become_user: "{{ ansible_env.SUDO_USER }}"
 
     - name: Setup directory for git repos
       ansible.builtin.file:
@@ -62,8 +114,11 @@
         state: directory
         owner: "{{ local_user }}"
         group: "{{ local_user }}"
-        # mode: 01777
-        recurse: true
+        mode: 0644
+        recurse: false
+        force: false
+      become: false
+      become_user: "{{ ansible_env.SUDO_USER }}"
 
     - name: Clone hardening repo
       become: false
@@ -90,5 +145,4 @@
         state: directory
         owner: "{{ local_user }}"
         group: "{{ local_user }}"
-        # mode: 01777
         recurse: true
